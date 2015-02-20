@@ -1,14 +1,26 @@
 {
     "name": "codefocus/vernacular",
     "description": "A PHP natural language processing library.",
+	"version": "0.1.0",
+	"type": "library",
+	"keywords": ["language", "nlp", "parsing", "processing", "sentiment", "text"],
+	"homepage": "http://www.codefocus.ca",
     "license": "Apache",
     "authors": [
         {
             "name": "Menno van Ens",
-            "email": "info@codefocus.ca"
+            "homepage": "http://www.codefocus.ca",
+            "email": "info@codefocus.ca",
+            "role": "Developer"
         }
     ],
-    "minimum-stability": "dev",
+    "support": {
+        "email": "info@codefocus.ca",
+        "issues": "https://github.com/codefocus/vernacular/issues",
+        "source": "https://github.com/codefocus/vernacular"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
     "require": {
         "php": ">=5.3.0",
         "illuminate/database": "5.1.*@dev",

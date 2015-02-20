@@ -1,8 +1,9 @@
 <?php
 
-//use Codefocus\Vernacular;
+use Codefocus\Vernacular;
 
 class LearnTest extends PHPUnit_Framework_TestCase {
+	
 	
 	/**
 	 * Setup the test environment.
@@ -11,7 +12,22 @@ class LearnTest extends PHPUnit_Framework_TestCase {
 	 */
 	public function setUp()
 	{
-		//	Set up
+		echo "Setting up database connection...\n";
+		$capsule = new Illuminate\Database\Capsule\Manager; 
+		
+		$capsule->addConnection(array(
+		    'driver'    => 'mysql',
+		    'host'      => 'localhost',
+		    'database'  => 'test',
+		    'username'  => 'test',
+		    'password'  => 'l4m3p455w0rd!',
+		    'charset'   => 'utf8',
+		    'collation' => 'utf8_unicode_ci',
+		    'prefix'    => ''
+		));
+		
+		$capsule->bootEloquent();
+
 	}
 
 	/**
@@ -21,9 +37,13 @@ class LearnTest extends PHPUnit_Framework_TestCase {
 	 */
 	public function tearDown()
 	{
-		//	Tear down
+		if ($this->app)
+		{
+			$this->app->flush();
+		}
 	}
-
+	
+	
 	/**
 	 * Test whether I am learning the words in a document correctly.
 	 *

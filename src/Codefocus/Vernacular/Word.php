@@ -5,7 +5,7 @@
 	class Word extends Model {
 		
 		public function __construct() {
-			echo 'Codefocus/Vernacular/Word.';
+			//echo 'Codefocus/Vernacular/Word.';
 		}
 		
 		
