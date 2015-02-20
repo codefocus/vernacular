@@ -1,0 +1,13 @@
+{
+    "name": "codefocus/vernacular",
+    "description": "A PHP natural language processing library.",
+    "license": "Apache",
+    "authors": [
+        {
+            "name": "Menno van Ens",
+            "email": "info@codefocus.ca"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
