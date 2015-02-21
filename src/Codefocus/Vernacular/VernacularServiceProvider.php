@@ -26,7 +26,7 @@ class VernacularServiceProvider extends \Illuminate\Support\ServiceProvider {
 	public function register()
 	{
 		echo 'VernacularServiceProvider.Register';
-		$this->app->bind('Vernacular', function($app)
+		$this->app->singleton('vernacular', function($app)
 		{
 			return new Vernacular;
 		});
