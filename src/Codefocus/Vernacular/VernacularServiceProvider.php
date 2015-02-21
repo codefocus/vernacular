@@ -8,15 +8,6 @@ class VernacularServiceProvider extends \Illuminate\Support\ServiceProvider {
 	 */
 	protected $defer = true;
 	
-	/**
-	 * Perform post-registration booting of services.
-	 *
-	 * @return void
-	 */
-	public function boot()
-	{
-	    //
-	}
 	
 	/**
 	 * Register bindings in the container.
@@ -25,8 +16,7 @@ class VernacularServiceProvider extends \Illuminate\Support\ServiceProvider {
 	 */
 	public function register()
 	{
-		echo 'VernacularServiceProvider.Register';
-		$this->app->singleton('vernacular', function($app)
+		App::bind('vernacular', function()
 		{
 			return new Vernacular;
 		});
