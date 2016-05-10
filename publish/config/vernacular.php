@@ -27,8 +27,33 @@ return [
         'max' => 2,
     ],
     
+    /*
+    |--------------------------------------------------------------------------
+    | Word length
+    |--------------------------------------------------------------------------
+    |
+    | Specifies the minimum and maximum length of words to include.
+    | Longer and shorter words are ignored.
+    |
+    */
     
+    'word_length' => [
+        'min' => 1,
+        'max' => 32,
+    ],
     
+    /*
+    |--------------------------------------------------------------------------
+    | Stopwords
+    |--------------------------------------------------------------------------
+    |
+    | Ignore frequently used words that do not add significant information.
+    | 
+    | Supported: true, false, <filename>
+    |
+    */
+    
+    'stopwords' => true,
     
     
 
