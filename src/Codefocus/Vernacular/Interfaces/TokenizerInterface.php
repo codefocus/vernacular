@@ -1,8 +1,8 @@
 <?php namespace Codefocus\Vernacular\Interfaces;
 
 
-abstract class TokenizerInterface {
+interface TokenizerInterface {
     
-    abstract public function tokenize();
+    public function tokenize($document);
     
 }

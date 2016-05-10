@@ -1,6 +1,6 @@
 <?php namespace Codefocus\Vernacular\Tokenizers;
 
-use Codefocus\Vernacular\Interfaces;
+use Codefocus\Vernacular\Interfaces\TokenizerInterface;
 
 class Whitespace implements TokenizerInterface {
     
@@ -13,7 +13,7 @@ class Whitespace implements TokenizerInterface {
      * @param string $document
      * @return array
      */
-    public static function tokenize($document) {
+    public function tokenize($document) {
     //	Strip HTML tags
         $document	= strip_tags($document);
     //	Strip links

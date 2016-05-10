@@ -1,7 +1,18 @@
 <?php namespace Codefocus\Vernacular;
 
+use Config;
 
 class Vernacular {
+    
+    private $tokenizer;
+    
+    
+    public function __construct() {
+        //  Instantiate configured tokenizer.
+        $tokenizerClass = Config::get('vernacular.tokenizer', \Codefocus\Vernacular\Tokenizers\Whitespace::class);
+        $this->tokenizer = new $tokenizerClass;
+    }
+    
     
     
     /**
@@ -9,16 +20,14 @@ class Vernacular {
      *
      */
     public function learn($document, array $tags = []) {
+        //  Extract words.
+        $words = $this->tokenizer->tokenize($document);
+        dump($words);
+        //  @TODO:  Verify that we have words.
         
-        $words      = $this->tokenize($document);
-        
-        //  @TODO:  Verify that we hav words.
-        
-        $bigrams    = [];
+        //$bigrams    = [];
         
     }
-    
-    
-    
+        
     
 }	//	class Vernacular
