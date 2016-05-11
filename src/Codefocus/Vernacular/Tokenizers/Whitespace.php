@@ -1,8 +1,23 @@
 <?php namespace Codefocus\Vernacular\Tokenizers;
 
 use Codefocus\Vernacular\Interfaces\TokenizerInterface;
+use Config;
 
 class Whitespace implements TokenizerInterface {
+    
+    const REGEX_LOOKBEHIND_NO_ALPHANUMERIC = '(?<!\pL|\pN)';
+    const REGEX_LOOKAHEAD_NO_ALPHANUMERIC = '(?!\pL|\pN)';
+    const REGEX_ALPHANUMERIC = '[\pL\pN]';
+    const REGEX_ALPHA = '\pL';
+    
+    protected $minWordLength;
+    protected $maxWordLength; 
+    
+    
+    public function __construct() {
+        $this->minWordLength = Config::get('vernacular.word_length.min', 1);
+        $this->maxWordLength = Config::get('vernacular.word_length.max', 16);
+    }
     
     
     /**
@@ -14,29 +29,33 @@ class Whitespace implements TokenizerInterface {
      * @return array
      */
     public function tokenize($document) {
-    //	Strip HTML tags
-        $document	= strip_tags($document);
-    //	Strip links
-        $document	= preg_replace('#[-a-zA-Z0-9@:%_\+.~\#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~\#?&//=]*)?#si', self::TOKEN_URL, $document);
-/*
-    //	Strip email
-        $document	= preg_replace('/[a-z0-9_\.]+@[a-z0-9-]{2,64}\.[a-z][a-z\.]{1,16}[a-z]/i', self::TOKEN_EMAIL, $document);
-*/
-    //	Convert to lowercase
-        $document	= strtolower($document);
-    //	Extract words and @users
-        if (preg_match_all('/(?<!\pL|\pN)@?\pL{'.self::MIN_TOKEN_LENGTH.','.self::MAX_TOKEN_LENGTH.'}(?!\pL|\pN)/u', $document, $matches)) {
-        //	Filter out @users
-            $matches = array_filter($matches[0], function($match){
-                if ('@' == substr($match, 0, 1)) {
-                    return false;
-                }
-                return true;
-            });
-        //	Rekey the array
-            return array_values($matches);
+        //	Strip HTML tags
+        //  
+        //  @NOTE:  These are not a tokenizer tasks.
+        //          Tokenizer expects text.
+        //  
+        //  $document	= strip_tags($document);
+        //	Strip links
+        //  $document	= preg_replace('#[-a-zA-Z0-9@:%_\+.~\#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~\#?&//=]*)?#si', self::TOKEN_URL, $document);
+        //	Strip email
+        //  $document	= preg_replace('/[a-z0-9_\.]+@[a-z0-9-]{2,64}\.[a-z][a-z\.]{1,16}[a-z]/i', self::TOKEN_EMAIL, $document);
+
+        //	Convert to lowercase
+        $document   = strtolower($document);
+        
+        //  Extract tokens.
+        $tokens     = [];
+        $regex      = self::REGEX_LOOKBEHIND_NO_ALPHANUMERIC.
+                      self::REGEX_ALPHA.'{'.$this->minWordLength.','.$this->maxWordLength.'}'.
+                      self::REGEX_LOOKAHEAD_NO_ALPHANUMERIC;
+        if (false === preg_match_all('/'.$regex.'/u', $document, $matches )) {
+            //  No acceptable tokens found in this document.
+            return $tokens;
         }
-        return array();
+        
+        //  Return found tokens.
+        return $matches[0];
+        //return array_values($matches[0]);
     }	//	function tokenize
     
 }
