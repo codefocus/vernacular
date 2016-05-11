@@ -41,16 +41,15 @@ class Whitespace implements TokenizerInterface {
         //  $document	= preg_replace('/[a-z0-9_\.]+@[a-z0-9-]{2,64}\.[a-z][a-z\.]{1,16}[a-z]/i', self::TOKEN_EMAIL, $document);
 
         //	Convert to lowercase
-        $document   = strtolower($document);
+        $document   = mb_strtolower($document);
         
         //  Extract tokens.
-        $tokens     = [];
         $regex      = self::REGEX_LOOKBEHIND_NO_ALPHANUMERIC.
                       self::REGEX_ALPHA.'{'.$this->minWordLength.','.$this->maxWordLength.'}'.
                       self::REGEX_LOOKAHEAD_NO_ALPHANUMERIC;
         if (false === preg_match_all('/'.$regex.'/u', $document, $matches )) {
             //  No acceptable tokens found in this document.
-            return $tokens;
+            return false;
         }
         
         //  Return found tokens.
