@@ -1,16 +1,18 @@
-<?php namespace Codefocus\Vernacular;
+<?php
 
-use \Illuminate\Support\Facades\Facade;
+namespace Codefocus\Vernacular;
 
-class VernacularFacade extends Facade {
+use Illuminate\Support\Facades\Facade;
 
+class VernacularFacade extends Facade
+{
     /**
-     * Get the registered name of the component. This tells $this->app what record to return
+     * Get the registered name of the component. This tells $this->app what record to return.
      *
      * @return string
      */
-    protected static function getFacadeAccessor() {
+    protected static function getFacadeAccessor()
+    {
         return 'Vernacular';
     }
-
 }

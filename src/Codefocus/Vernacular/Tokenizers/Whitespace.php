@@ -1,34 +1,36 @@
-<?php namespace Codefocus\Vernacular\Tokenizers;
+<?php
+
+namespace Codefocus\Vernacular\Tokenizers;
 
 use Codefocus\Vernacular\Interfaces\TokenizerInterface;
 use Config;
 
-class Whitespace implements TokenizerInterface {
-    
+class Whitespace implements TokenizerInterface
+{
     const REGEX_LOOKBEHIND_NO_ALPHANUMERIC = '(?<!\pL|\pN)';
     const REGEX_LOOKAHEAD_NO_ALPHANUMERIC = '(?!\pL|\pN)';
     const REGEX_ALPHANUMERIC = '[\pL\pN]';
     const REGEX_ALPHA = '\pL';
-    
+
     protected $minWordLength;
-    protected $maxWordLength; 
-    
-    
-    public function __construct() {
+    protected $maxWordLength;
+
+    public function __construct()
+    {
         $this->minWordLength = Config::get('vernacular.word_length.min', 1);
         $this->maxWordLength = Config::get('vernacular.word_length.max', 16);
     }
-    
-    
+
     /**
      * Extract all words from a string.
      * Unicode-safe (will catch "你的妈" as well as "lølwüt").
      * 
-     * @access public
      * @param string $document
+     *
      * @return array
      */
-    public function tokenize($document) {
+    public function tokenize($document)
+    {
         //	Strip HTML tags
         //  
         //  @NOTE:  These are not a tokenizer tasks.
@@ -41,20 +43,19 @@ class Whitespace implements TokenizerInterface {
         //  $document	= preg_replace('/[a-z0-9_\.]+@[a-z0-9-]{2,64}\.[a-z][a-z\.]{1,16}[a-z]/i', self::TOKEN_EMAIL, $document);
 
         //	Convert to lowercase
-        $document   = mb_strtolower($document);
-        
+        $document = mb_strtolower($document);
+
         //  Extract tokens.
-        $regex      = self::REGEX_LOOKBEHIND_NO_ALPHANUMERIC.
+        $regex = self::REGEX_LOOKBEHIND_NO_ALPHANUMERIC.
                       self::REGEX_ALPHA.'{'.$this->minWordLength.','.$this->maxWordLength.'}'.
                       self::REGEX_LOOKAHEAD_NO_ALPHANUMERIC;
-        if (false === preg_match_all('/'.$regex.'/u', $document, $matches )) {
+        if (false === preg_match_all('/'.$regex.'/u', $document, $matches)) {
             //  No acceptable tokens found in this document.
             return false;
         }
-        
+
         //  Return found tokens.
         return $matches[0];
         //return array_values($matches[0]);
-    }	//	function tokenize
-    
+    }    //	function tokenize
 }

@@ -1,8 +1,8 @@
-<?php namespace Codefocus\Vernacular\Interfaces;
+<?php
 
+namespace Codefocus\Vernacular\Interfaces;
 
-interface TokenizerInterface {
-    
+interface TokenizerInterface
+{
     public function tokenize($document);
-    
 }

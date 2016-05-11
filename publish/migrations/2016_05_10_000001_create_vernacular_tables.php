@@ -10,8 +10,6 @@ class CreateVernacularTables extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
     public function up()
     {
@@ -29,7 +27,7 @@ class CreateVernacularTables extends Migration
             $table->index(['id', 'frequency']);
             $table->index(['id', 'document_frequency']);
         });
-        
+
         //	Records which words follow each other.
         Schema::create('vernacular_bigram', function (Blueprint $table) {
             //  Columns
@@ -42,7 +40,7 @@ class CreateVernacularTables extends Migration
             //  Indices
             $table->unique(['word_a_id', 'word_b_id', 'distance']);
         });
-        
+
         //	Holds tags.
         Schema::create('vernacular_tag', function (Blueprint $table) {
             //  Columns
@@ -52,7 +50,7 @@ class CreateVernacularTables extends Migration
             //  Indices
             $table->unique(['name']);
         });
-        
+
         //	Links bigrams to tags.
         Schema::create('vernacular_bigram_tag', function (Blueprint $table) {
             //  Columns
@@ -65,7 +63,7 @@ class CreateVernacularTables extends Migration
             //  Indices
             $table->unique(['bigram_id', 'tag_id', 'confidence']);
         });
-        
+
         //	Holds document identifiers.
         Schema::create('vernacular_document', function (Blueprint $table) {
             //  Columns
@@ -77,7 +75,7 @@ class CreateVernacularTables extends Migration
             //  Indices
             $table->unique(['model_class', 'model_id']);
         });
-        
+
         //	Links document identifiers to bigrams.
         Schema::create('vernacular_document_bigram', function (Blueprint $table) {
             //  Columns
@@ -87,7 +85,7 @@ class CreateVernacularTables extends Migration
             //  Indices
             $table->unique(['document_id', 'bigram_id']);
         });
-        
+
         //	Links document identifiers to tags.
         Schema::create('vernacular_document_tag', function (Blueprint $table) {
             //  Columns
@@ -100,18 +98,12 @@ class CreateVernacularTables extends Migration
             //  Indices
             $table->unique(['document_id', 'tag_id', 'confidence']);
         });
-        
-        
-        
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
     public function down()
     {
-        
     }
 }

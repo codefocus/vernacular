@@ -21,12 +21,12 @@ return [
     |         none
     |
     */
-    
+
     'word_distance' => [
         'min' => 1,
         'max' => 2,
     ],
-    
+
     /*
     |--------------------------------------------------------------------------
     | Word length
@@ -36,12 +36,12 @@ return [
     | Longer and shorter words are ignored.
     |
     */
-    
+
     'word_length' => [
         'min' => 1,
         'max' => 16,
     ],
-    
+
     /*
     |--------------------------------------------------------------------------
     | Stopwords
@@ -52,9 +52,9 @@ return [
     | Supported: true, false, <filename>
     |
     */
-    
+
     'stopwords' => true,
-    
+
     /*
     |--------------------------------------------------------------------------
     | Tokenizer
@@ -62,8 +62,7 @@ return [
     | 
     |
     */
-    
+
     'tokenizer' => \Codefocus\Vernacular\Tokenizers\Whitespace::class,
-    
 
 ];
