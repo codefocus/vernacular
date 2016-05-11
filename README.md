@@ -17,7 +17,7 @@ class YourModel extends Model
 {
     use Codefocus\Vernacular\Traits\Indexable;
     
-    protected $vernacularIndexAttributes = ['description'];
+    protected $indexableAttributes = ['description'];
     
 …
 ```
