@@ -1,4 +1,4 @@
-<?php namespace Codefocus\Vernacular;
+<?php namespace Codefocus\Vernacular\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
