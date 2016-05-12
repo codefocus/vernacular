@@ -3,14 +3,17 @@
 namespace Codefocus\Vernacular\Traits;
 
 use Codefocus\Vernacular\Exceptions\VernacularException;
+use Codefocus\Vernacular\Observers\ModelObserver;
 use App;
 
 trait Indexable
 {
     protected static $vernacular;
+    protected static $observer;
+    
     
     public function __construct() {
-        static $listeningToModels = [];
+        static $observedModels = [];
         
         //  Ensure all required attributes are set and valid.
         if (!isset($this->indexableAttributes)) {
@@ -28,24 +31,15 @@ trait Indexable
             static::$vernacular = App::make('vernacular');
         }
         
-        if (!isset($listeningToModels[$className])) {
-            $listeningToModels[$className] = true;
-            //  Listen to database events for this Model.
-            static::created(function($model) {
-                
-                dump('TRAIT: created a '.class_basename($model));
-                $model::$vernacular->learn($model);
-                //dump($this->indexableAttributes);
-            });
-            static::updated(function($model) {
-                dump('TRAIT: updated a '.class_basename($model));
-            });
+        //  Observe created and updated events for each different Model class.
+        if (!isset($observedModels[$className])) {
+            if (!isset(static::$observer)) {
+                static::$observer = new ModelObserver;
+            }
+            $observedModels[$className] = true;
+            static::observe(static::$observer);
         }
         
     }
     
-    
-    
 }
-
-//  $t = new \Codefocus\Vernacular\Models\Tag;
