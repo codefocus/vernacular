@@ -57,23 +57,34 @@ class CreateVernacularTables extends Migration
             $table->integer('bigram_id')->unsigned();
             $table->integer('tag_id')->unsigned();
             //  Confidence level.
-            //  Stored as a value between 0.0000 and 1.0000.
-            $table->decimal('confidence', 5, 4);
+            //  Stored as a value between 0.000 and 1.000.
+            $table->decimal('confidence', 4, 3);
             $table->timestamps();
             //  Indices
             $table->unique(['bigram_id', 'tag_id', 'confidence']);
+        });
+
+        //	Holds source identifiers.
+        Schema::create('vernacular_source', function (Blueprint $table) {
+            //  Columns
+            $table->increments('id')->unsigned();
+            $table->string('model_class', 128);
+            $table->string('attribute', 128);
+            $table->timestamps();
+            //  Indices
+            $table->unique(['model_class', 'attribute']);
         });
 
         //	Holds document identifiers.
         Schema::create('vernacular_document', function (Blueprint $table) {
             //  Columns
             $table->increments('id')->unsigned();
-            $table->string('model_class', 128);
-            $table->integer('model_id')->unsigned();
+            $table->integer('source_id')->unsigned();
+            $table->integer('source_model_id')->unsigned();
             $table->integer('word_count')->unsigned();
             $table->timestamps();
             //  Indices
-            $table->unique(['model_class', 'model_id']);
+            $table->unique(['source_id', 'source_model_id']);
         });
 
         //	Links document identifiers to bigrams.
@@ -82,6 +93,9 @@ class CreateVernacularTables extends Migration
             $table->integer('document_id')->unsigned();
             $table->integer('bigram_id')->unsigned();
             $table->integer('frequency')->unsigned();
+            //  The first instance of this bigram in this document.
+            //  Stored as a value between 0.000 and 1.000.
+            $table->decimal('first_instance', 4, 3);
             //  Indices
             $table->unique(['document_id', 'bigram_id']);
         });
@@ -92,8 +106,8 @@ class CreateVernacularTables extends Migration
             $table->integer('document_id')->unsigned();
             $table->integer('tag_id')->unsigned();
             //  Confidence level, if document was not explicitly tagged.
-            //  Stored as a value between 0.0000 and 1.0000.
-            $table->decimal('confidence', 5, 4);
+            //  Stored as a value between 0.000 and 1.000.
+            $table->decimal('confidence', 4, 3);
             $table->timestamps();
             //  Indices
             $table->unique(['document_id', 'tag_id', 'confidence']);

@@ -30,8 +30,8 @@
         "fabpot/php-cs-fixer": "^1.11"
     },
     "autoload": {
-        "psr-0": {
-            "Codefocus\\Vernacular": "src/"
+        "psr-4": {
+            "Codefocus\\Vernacular\\": "src/"
         }
     }
 }

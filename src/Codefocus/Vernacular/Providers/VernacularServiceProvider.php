@@ -1,6 +1,9 @@
 <?php
 
-namespace Codefocus\Vernacular;
+namespace Codefocus\Vernacular\Providers;
+
+use Codefocus\Vernacular\Vernacular;
+use App;
 
 class VernacularServiceProvider extends \Illuminate\Support\ServiceProvider
 {
@@ -9,7 +12,7 @@ class VernacularServiceProvider extends \Illuminate\Support\ServiceProvider
      *
      * @var bool
      */
-    protected $defer = true;
+    protected $defer = false;
 
     /**
      * Perform post-registration booting of services.
@@ -17,11 +20,11 @@ class VernacularServiceProvider extends \Illuminate\Support\ServiceProvider
     public function boot()
     {
         $this->publishes([
-            __DIR__.'/../publish/config/vernacular.php' => config_path('vernacular.php'),
+            __DIR__.'/../../../../publish/config/vernacular.php' => config_path('vernacular.php'),
         ], 'config');
 
         $this->publishes([
-            __DIR__.'/../publish/migrations/' => database_path('migrations'),
+            __DIR__.'/../../../../publish/migrations/' => database_path('migrations'),
         ], 'migrations');
     }
 
@@ -30,8 +33,8 @@ class VernacularServiceProvider extends \Illuminate\Support\ServiceProvider
      */
     public function register()
     {
-        App::bind('vernacular', function () {
-            return new \Codefocus\Vernacular\Vernacular(config('vernacular'));
+        App::singleton('vernacular', function () {
+            return new Vernacular(config('vernacular'));
         });
     }
 }    //	class VernacularServiceProvider
