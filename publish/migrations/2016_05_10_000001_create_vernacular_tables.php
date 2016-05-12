@@ -63,16 +63,17 @@ class CreateVernacularTables extends Migration
             //  Indices
             $table->unique(['bigram_id', 'tag_id', 'confidence']);
         });
+        
+        
 
         //	Holds source identifiers.
         Schema::create('vernacular_source', function (Blueprint $table) {
             //  Columns
             $table->increments('id')->unsigned();
             $table->string('model_class', 128);
-            $table->string('attribute', 128);
             $table->timestamps();
             //  Indices
-            $table->unique(['model_class', 'attribute']);
+            $table->unique(['model_class']);
         });
 
         //	Holds document identifiers.

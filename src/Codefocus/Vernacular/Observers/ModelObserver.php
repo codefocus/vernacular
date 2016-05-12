@@ -4,32 +4,29 @@ namespace Codefocus\Vernacular\Observers;
 
 use Illuminate\Database\Eloquent\Model;
 use Codefocus\Vernacular\Vernacular;
-
+use App;
 
 class ModelObserver
 {
+    protected static $vernacular;
     
-    /**
-     * One ModelObserver instance is created for each different
-     * Model class that is observed.
-     * 
-     */
+    
     public function __construct() {
-        dump('ModelObserver created.');
+        //  Instantiate a Vernacular singleton.
+        if (!static::$vernacular) {
+            static::$vernacular = App::make('vernacular');
+        }
     }
     
     
-    public function created(Model $model) {
-        dump('ModelObserver::created '.get_class($model));
-        
+    public function created(Model $model)
+    {
+        static::$vernacular->learnModel($model);
     }
     
     
-    public function updated(Model $model) {
-        dump('ModelObserver::updated '.get_class($model));
-        
+    public function updated(Model $model)
+    {
+        static::$vernacular->updateLearnedModel($model);
     }
-    
-    
 }
-

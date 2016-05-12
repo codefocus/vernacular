@@ -15,15 +15,16 @@ Do not use in production.
 ```php
 class YourModel extends Model
 {
-    use Codefocus\Vernacular\Traits\Indexable;
+    use Codefocus\Vernacular\Traits\Learnable;
     
-    protected $indexableAttributes = ['description'];
+    protected $vernacularAttributes = ['description'];
+    protected $vernacularTags = [];
     
 …
 ```
 
 ##Code style
 
-`php-cs-fixer fix ./ --level=psr2`
+`php-cs-fixer fix ./ --level=psr2 --fixers=-psr0`
 
 ##Contribute

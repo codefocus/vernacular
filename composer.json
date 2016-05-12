@@ -33,5 +33,11 @@
         "psr-4": {
             "Codefocus\\Vernacular\\": "src/"
         }
+    },
+    "scripts": {
+        "post-update-cmd": [
+            "php-cs-fixer fix --level=psr2 --fixers=-psr0 ./"
+        ]
     }
+    
 }
