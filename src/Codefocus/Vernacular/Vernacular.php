@@ -54,59 +54,70 @@ class Vernacular
         if (!is_array($model->learnableAttributes)) {
             throw new VernacularException('$learnableAttributes should be an array.');
         }
-        
-        //  vernacularTags
-        
-        
-        foreach($model->learnableAttributes as $attribute) {
-            $this->learnModelAttribute($model, $attribute);
+        if (0 == count($model->learnableAttributes)) {
+            //  No learnable attributes specified.
+            //  Nothing to learn.
+            return false;
         }
         
-    }
+        DB::transaction(function() use ($model) {
+            //  Lookup, load or create this Source (Model).
+            $className = get_class($model);
+            $classBaseName = class_basename($className);
+            if (!isset(static::$sources[$className])) {
+                static::$sources[$className] = Source::firstOrCreate(['model_class' => $className]);
+            }
+            //  Lookup, load or create this Document (Model instance).
+            $sourceId = static::$sources[$className];
+            $modelId = $model->id;
+            if (!isset(static::$documents[$sourceId]) or !isset(static::$documents[$sourceId][$modelId])) {
+                static::$documents[$sourceId][$modelId] = Document::firstOrCreate([
+                    'source_id' => $sourceId,
+                    'model_id' => $modelId,
+                ]);
+            }
+            //  Extract tokens from each learnable attribute.
+            $tokens = [];
+            foreach($model->learnableAttributes as $attribute) {
+                $tokens += $this->tokenizer->tokenize($model->attribute);
+            }
+            if (0 == count($tokens)) {
+                //  No tokens in this document.
+                throw new Exception('No words found in this '.$classBaseName.'.');
+            }
+            //  Count occurrences of each token.
+            $uniqueCountedTokens = array_count_values($tokens);
+            //  Load existing Words, and create a Model instance for new Words.
+            $words = Word::whereIn('word', array_keys($uniqueCountedTokens))
+                ->get()
+                ->keyBy('word');
+            foreach ($uniqueCountedTokens as $token => $tokenCount) {
+                if (!isset($words[$token])) {
+                    $word = new Word([
+                        'word' => $token,
+                        'soundex' => soundex($token),
+                        'frequency' => 0,
+                        'document_frequency' => 0,
+                    ]);
+                    $words[$token] = $word;
+                }
+                //  Increase this Word's frequency by the number of occurrences.
+                $words[$token]->frequency += $tokenCount;
+                //  Increment this Word's document frequency.
+                $words[$token]->document_frequency++;
+                //  Save.
+                $words[$token]->save();
+            }
+            
+            //  @TODO:  create bigrams.
+            
+            //  @TODO:  if model->vernacularTags, tag document and bigrams.
+            
+        
+        }); //  transaction
+        
+    }   //  function learnModel
     
-    /**
-     * Index an attribute of an Eloquent Model.
-     * 
-     * @param Model $model
-     * @param string $attribute
-     *
-     * @throws VernacularException
-     *
-     * @return boolean
-     */
-    public function learnModelAttribute(Model $model, $attribute) {
-        if (!is_string($attribute)) {
-            throw new VernacularException('The $attribute parameter should be a string.');
-        }
-        if (!$model->exists()) {
-            throw new VernacularException('Cannot learn an unsaved Model.');
-        }
-        
-        //  Lookup, load or create this Source (model/attribute).
-        $className = get_class($model);
-        if (!isset(static::$sources[$className]) or !isset(static::$sources[$className][$attribute])) {
-            static::$sources[$className][$attribute] = Source::firstOrCreate([
-                'model_class' => $className,
-                'attribute' => $attribute,
-            ]);
-        }
-        
-        //  Lookup, load or create this Document.
-        $sourceId = $sources[$className][$attribute];
-        $modelId = $model->id;
-        if (!isset(static::$documents[$sourceId]) or !isset(static::$documents[$sourceId][$modelId])) {
-            static::$documents[$sourceId][$modelId] = Document::firstOrCreate([
-                'source_id' => $sourceId,
-                'model_id' => $modelId,
-            ]);
-        }
-        
-        
-        
-        //  static::$sources[$className][$attribute]
-        
-        
-    }
     
     
     
@@ -116,59 +127,13 @@ class Vernacular
     
     
     
-
-    /**
-     * Index a document.
-     */
-    public function learn($document, array $tags = [])
-    {
-        //  Load / create document identifier.
-        //  @TODO:  This happens before learn().
-        //          learn() should take a DocumentIdentifier and text.
-
-        //  Extract words.
-        $words = $this->tokenizer->tokenize($document);
-        if (!$words) {
-            //  No words in this document.
-            return false;
-        }
-        
-        
-        //$vernacularWords;
-        $wordsUnique = array_count_values($words);
-        
-        //  @TODO: Move to separate function.
-        //DB::transaction(function() use ($words, $vernacularWords) {
-            //  Load existing Words, and
-            //  prep a model instance for each new Word.
-
-            $vernacularWords    = Word::whereIn('word', array_keys($wordsUnique))
-                                      ->get()
-                                      ->keyBy('word');
-        foreach ($wordsUnique as $word => $wordOccurrences) {
-            if (!isset($vernacularWords[$word])) {
-                $vernacularWords[$word] = new Word();
-                $vernacularWords[$word]->word = $word;
-                $vernacularWords[$word]->soundex = soundex($word);
-                $vernacularWords[$word]->frequency = 0;
-                $vernacularWords[$word]->document_frequency = 0;
-            }
-                //  Increase this Word's frequency by the number of occurrences.
-                $vernacularWords[$word]->frequency += $wordOccurrences;
-                //  Increment this Word's document frequency.
-                $vernacularWords[$word]->document_frequency++;
-                //  Save.
-                $vernacularWords[$word]->save();
-        }
-        //});
-
-        
-        //$bigrams    = [];
-    }   //  function learn
-
-    
     protected function getBigrams()
     {
+        //  @TODO:  
+        
     }
+    
+    
+    
 }    //	class Vernacular
 
