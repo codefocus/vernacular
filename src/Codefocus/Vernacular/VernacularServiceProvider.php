@@ -16,6 +16,7 @@ class VernacularServiceProvider extends \Illuminate\Support\ServiceProvider
      */
     public function boot()
     {
+        //  @TODO:  issue #6: Extend default config.
         $this->publishes([
             __DIR__.'/../publish/config/vernacular.php' => config_path('vernacular.php'),
         ], 'config');

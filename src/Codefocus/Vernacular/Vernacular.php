@@ -21,6 +21,7 @@ class Vernacular
 
     public function __construct(array $config = [])
     {
+        //  @TODO:  issue #6: Extend default config.
         if (empty($config)) {
             $config = config('vernacular');
         }
@@ -80,7 +81,6 @@ class Vernacular
                     $document = new Document;
                     $document->source_id = $sourceId;
                     $document->source_model_id = $modelId;
-                    $document->save();
                 }
                 static::$documents[$sourceId][$modelId] = $document;
             }
@@ -91,12 +91,21 @@ class Vernacular
                 $tokens += $this->tokenizer->tokenize($model->$attribute);
             }
             
-            //  @TODO:  Filter stopwords here.
             
-            if (0 == count($tokens)) {
+            //  @TODO:  Filter stopwords here.
+            //          https://github.com/codefocus/vernacular/issues/9
+            
+            
+            $numTokens = count($tokens);
+            if (0 == $numTokens) {
                 //  No tokens in this document.
                 throw new Exception('No words found in this '.$classBaseName.'.');
             }
+            
+            //  Store document word count
+            $document->word_count = $numTokens;
+            $document->save();
+            
             //  Count occurrences of each token.
             $uniqueCountedTokens = array_count_values($tokens);
             //  Load existing Words, and create a Model instance for new Words.
@@ -120,28 +129,17 @@ class Vernacular
                 //  Save.
                 $words[$token]->save();
             }
-            //  Create raw bigrams.
-            $uniqueCountedRawBigrams = $this->getBigrams($tokens, $words);
-            foreach($uniqueCountedRawBigrams as $wordAId => $wordBIds) {
-                foreach($wordBIds as $wordBId => $bigramFrequency) {
-                    
-                    
-                }
+            //  Create Bigrams.
+            $uniqueCountedBigrams = $this->getBigrams($tokens, $words);
+            //  Link Bigrams to the Document.
+            foreach($uniqueCountedBigrams as $bigram) {
+                //  @TODO
+                //  https://github.com/codefocus/vernacular/issues/7
             }
             
             
-            dump($uniqueCountedRawBigrams);
-            
-            //  Load existing Bigrams, and create a Model instance for new Bigrams.
-            // $bigrams = Bigram::whereIn('word', array_keys($uniqueCountedRawBigrams))
-            //     ->get()
-            //     ->keyBy('word');
-            
-            // foreach($tokens as $token) {
-                
-            // }
-            
             //  @TODO:  if model->vernacularTags, tag document and bigrams.
+            //          https://github.com/codefocus/vernacular/issues/4
             
         
         }); //  transaction
@@ -153,6 +151,7 @@ class Vernacular
     
     public function updateLearnedModel(Model $model) {
         //  @TODO
+        //  https://github.com/codefocus/vernacular/issues/3
     }
     
     
@@ -166,6 +165,7 @@ class Vernacular
      */
     protected function getBigrams(array $tokens, array $words)
     {
+        //  @TODO:  issue #6: Extend default config. 
         $minDistance = (empty($this->config['word_distance']['min']) ? 1 : $this->config['word_distance']['min']);
         $minDistance = max($minDistance, 1);
         $maxDistance = (empty($this->config['word_distance']['max']) ? 1 : $this->config['word_distance']['max']);
@@ -203,9 +203,23 @@ class Vernacular
         }
         //  Now that we have the lookup keys,
         //  pull all known Bigrams in one query.
-        $bigrams = Bigram::whereIn('lookup_key', array_keys($rawBigrams))->get();
+        $bigrams = Bigram::whereIn('lookup_key', array_keys($rawBigrams))->get()->all();
+        //  Create Bigram Model instances for new bigrams.
+        foreach($rawBigrams as $lookupKey => $rawBigram) {
+            
+            //  @TODO: unless we already have this lookup_key + distance in $bigrams
+            
+            $bigram = new Bigram();
+            $bigram->word_a_id = $rawBigram['word_a_id'];
+            $bigram->word_b_id = $rawBigram['word_b_id'];
+            $bigram->lookup_key = $lookupKey;
+            $bigram->word_a_id = $rawBigram['word_a_id'];
+            
+            $bigrams[] = $bigram;
+        }
         
-        //  @TODO: Create Bigram Model instances for new bigrams.
+        
+        
         
         return $bigrams;
     }
