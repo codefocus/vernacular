@@ -32,6 +32,7 @@ class CreateVernacularTables extends Migration
         Schema::create('vernacular_bigram', function (Blueprint $table) {
             //  Columns
             $table->increments('id')->unsigned();
+            $table->bigInteger('lookup_key')->unsigned();
             $table->integer('word_a_id')->unsigned();
             $table->integer('word_b_id')->unsigned();
             $table->tinyInteger('distance')->unsigned();
@@ -39,6 +40,7 @@ class CreateVernacularTables extends Migration
             $table->integer('document_frequency')->unsigned();
             //  Indices
             $table->unique(['word_a_id', 'word_b_id', 'distance']);
+            $table->index(['lookup_key']);
         });
 
         //	Holds tags.
@@ -61,7 +63,7 @@ class CreateVernacularTables extends Migration
             $table->decimal('confidence', 4, 3);
             $table->timestamps();
             //  Indices
-            $table->unique(['bigram_id', 'tag_id', 'confidence']);
+            $table->unique(['bigram_id', 'tag_id']);
         });
         
         
@@ -111,7 +113,7 @@ class CreateVernacularTables extends Migration
             $table->decimal('confidence', 4, 3);
             $table->timestamps();
             //  Indices
-            $table->unique(['document_id', 'tag_id', 'confidence']);
+            $table->unique(['document_id', 'tag_id']);
         });
     }
 

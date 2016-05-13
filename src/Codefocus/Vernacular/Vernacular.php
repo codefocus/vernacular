@@ -122,6 +122,14 @@ class Vernacular
             }
             //  Create raw bigrams.
             $uniqueCountedRawBigrams = $this->getBigrams($tokens, $words);
+            foreach($uniqueCountedRawBigrams as $wordAId => $wordBIds) {
+                foreach($wordBIds as $wordBId => $bigramFrequency) {
+                    
+                    
+                }
+            }
+            
+            
             dump($uniqueCountedRawBigrams);
             
             //  Load existing Bigrams, and create a Model instance for new Bigrams.
@@ -158,31 +166,47 @@ class Vernacular
      */
     protected function getBigrams(array $tokens, array $words)
     {
-        //  @TODO:  Currently only creating bigrams with distance 1.
-        //          Use configured min / max distance.
+        $minDistance = (empty($this->config['word_distance']['min']) ? 1 : $this->config['word_distance']['min']);
+        $minDistance = max($minDistance, 1);
+        $maxDistance = (empty($this->config['word_distance']['max']) ? 1 : $this->config['word_distance']['max']);
+        $maxDistance = max($minDistance, $maxDistance);
+        
+        
         $numTokens = count($tokens);
         $distance = 1;
         $iMaxTokenA = $numTokens - $distance;
-        $iTokenA = 0;
-        $iTokenB = 0;
-        $bigrams = [];
+        
+        $rawBigrams = [];
         
         for ($iTokenA = 0; $iTokenA < $iMaxTokenA; ++$iTokenA) {
             $iTokenB = $iTokenA + $distance;
-            
+            //  Get the Word ids for these tokens,
+            //  and combine them into a single unique lookup key.
             $wordAId = $words[$tokens[$iTokenA]]->id;
             $wordBId = $words[$tokens[$iTokenB]]->id;
             
-            if (!isset($bigrams[$wordAId])) {
-                $bigrams[$wordAId] = [];
+            $lookupKey = $wordAId << 32 + $wordBId;
+            if (!isset($rawBigrams[$lookupKey])) {
+                $rawBigrams[$lookupKey] = [
+                    'word_a_id' => $wordAId,
+                    'word_b_id' => $wordBId,
+                    'distances' => [],
+                ];
             }
-            if (!isset($bigrams[$wordAId][$wordBId])) {
-                $bigrams[$wordAId][$wordBId] = 1;
+            //  Increment this bigram's frequency for the current distance.
+            if (!isset($rawBigrams[$lookupKey]['distances'][$distance])) {
+                $rawBigrams[$lookupKey]['distances'][$distance] = 1;
             }
             else {
-                ++$bigrams[$wordAId][$wordBId];
+                ++$rawBigrams[$lookupKey]['distances'][$distance];
             }
         }
+        //  Now that we have the lookup keys,
+        //  pull all known Bigrams in one query.
+        $bigrams = Bigram::whereIn('lookup_key', array_keys($rawBigrams))->get();
+        
+        //  @TODO: Create Bigram Model instances for new bigrams.
+        
         return $bigrams;
     }
     
