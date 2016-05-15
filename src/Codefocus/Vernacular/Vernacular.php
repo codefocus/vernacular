@@ -45,7 +45,8 @@ class Vernacular
      *
      * @return boolean
      */
-    public function learnModel(Model $model) {
+    public function learnModel(Model $model)
+    {
         
         //  Ensure this Model exists in the database.
         if (!$model->exists()) {
@@ -64,7 +65,7 @@ class Vernacular
             return false;
         }
         
-        DB::transaction(function() use ($model) {
+        DB::transaction(function () use ($model) {
             //  Lookup, load or create this Source (reference to Model).
             $className = get_class($model);
             $classBaseName = class_basename($className);
@@ -89,14 +90,14 @@ class Vernacular
             
             //  Extract tokens from each learnable attribute.
             $tokens = [];
-            foreach($model->vernacularAttributes as $attribute) {
+            foreach ($model->vernacularAttributes as $attribute) {
                 $tokens += $this->tokenizer->tokenize($model->$attribute);
             }
             
             
             //  @TODO:  Filter stopwords here.
             //          https://github.com/codefocus/vernacular/issues/9
-            
+
             
             $numTokens = count($tokens);
             if (0 == $numTokens) {
@@ -136,7 +137,7 @@ class Vernacular
             //  Link Bigrams to the Document.
             //  @TODO:  Should happen in getBigrams
             $documentBigramInsert = [];
-            foreach($documentBigramMetaData as $metaDataItem) {
+            foreach ($documentBigramMetaData as $metaDataItem) {
                 $documentBigramInsert[] = [
                     'document_id' => $document->id,
                     'bigram_id' => $metaDataItem['bigram']->id,
@@ -150,16 +151,16 @@ class Vernacular
             //          - tag document
             //          - recalculate tag confidence for bigrams.
             //          https://github.com/codefocus/vernacular/issues/4
-            
+
         
         }); //  transaction
-        
     }   //  function learnModel
+
     
     
     
-    
-    public function updateLearnedModel(Model $model) {
+    public function updateLearnedModel(Model $model)
+    {
         //  @TODO
         //  https://github.com/codefocus/vernacular/issues/3
     }
@@ -177,7 +178,7 @@ class Vernacular
     {
         $numTokens = count($tokens);
         
-        for($distance = $minDistance; $distance <= $maxDistance; ++$distance) {
+        for ($distance = $minDistance; $distance <= $maxDistance; ++$distance) {
             $iMaxTokenA = $numTokens - $distance;
             
             //  Generate raw bigrams from the tokens, consisting of
@@ -207,7 +208,7 @@ class Vernacular
         }
         return $rawBigrams;
     }   //  function getRawBigrams
-    
+
     
     /**
      * Create Bigrams from an array of tokens.
@@ -217,7 +218,8 @@ class Vernacular
      *
      * @return array
      */
-    protected function getBigrams(array $tokens, array $words) {
+    protected function getBigrams(array $tokens, array $words)
+    {
         //  @TODO:  issue #6: Extend default config. 
         $minDistance = (empty($this->config['word_distance']['min']) ? 1 : $this->config['word_distance']['min']);
         $minDistance = max($minDistance, 1);
@@ -238,15 +240,14 @@ class Vernacular
         //  Create Bigram Model instances for new bigrams, and
         //  get metadata to return (frequency in this document, first instance).
         $documentBigramMetaData = [];
-        foreach($rawBigrams as $lookupKey => $rawBigram) {
-            
+        foreach ($rawBigrams as $lookupKey => $rawBigram) {
             $distancesToCreate  = $rawBigram['distances'];
             $currentBigrams     = [];
             
             //  @TODO:  Optimize this by:
             //          - searching the $bigrams array in a more efficient manner than 1...∞
             //          - returning raw bigrams in a structure that would eliminate the following loop
-            foreach($bigrams as $bigram) {
+            foreach ($bigrams as $bigram) {
                 if ($bigram->word_a_id < $rawBigram['word_a_id']) {
                     continue;
                 }
@@ -258,7 +259,7 @@ class Vernacular
                     break;
                 }
                 
-                foreach($distancesToCreate as $distanceToCreate => $frequency) {
+                foreach ($distancesToCreate as $distanceToCreate => $frequency) {
                     if ($bigram->distance == $distanceToCreate) {
                         //  Update this existing Bigram's frequency.
                         $bigram->frequency += $frequency;
@@ -275,7 +276,7 @@ class Vernacular
                 }
             }
             
-            foreach($distancesToCreate as $distanceToCreate => $frequency) {
+            foreach ($distancesToCreate as $distanceToCreate => $frequency) {
                 if (false == $frequency) {
                     continue;
                 }
@@ -305,13 +306,9 @@ class Vernacular
         //      Circumvent Eloquent to reduce this to 2 queries:
         //      - 1 combining all updates
         //      - 1 combining all inserts
-        foreach($bigrams as $bigram) {
+        foreach ($bigrams as $bigram) {
             $bigram->save();
         }
         return $documentBigramMetaData;
     }   //  function getBigrams
-    
-    
-    
 }    //	class Vernacular
-

@@ -19,19 +19,28 @@
         "issues": "https://github.com/codefocus/vernacular/issues",
         "source": "https://github.com/codefocus/vernacular"
     },
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
         "php": ">=5.4.0",
-        "laravel/framework": "5.*"
+        "laravel/laravel": "dev-develop"
     },
     "require-dev": {
+        "fabpot/php-cs-fixer": "^1.11",
         "phpunit/phpunit": "~4.0",
-        "fabpot/php-cs-fixer": "^1.11"
+        "phpspec/phpspec": "~2.1",
+        "laracasts/testdummy": "~2.0",
+        "laravel/laravel": "dev-develop"
     },
     "autoload": {
         "psr-4": {
             "Codefocus\\Vernacular\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "classmap": [ "tests/TestCase.php" ],
+        "psr-0": {
+            "": "src/"
         }
     },
     "scripts": {

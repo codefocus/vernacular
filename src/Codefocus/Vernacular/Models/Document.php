@@ -14,6 +14,4 @@ class Document extends Model
         'model_id',
         'word_count',
     ];
-
 }    //	class Document
-

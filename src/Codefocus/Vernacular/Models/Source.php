@@ -13,6 +13,4 @@ class Source extends Model
         'model_class',
         'attribute',
     ];
-    
 }    //	class Source
-

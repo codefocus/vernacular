@@ -11,7 +11,8 @@ class ModelObserver
     protected static $vernacular;
     
     
-    public function __construct() {
+    public function __construct()
+    {
         //  Instantiate a Vernacular singleton.
         if (!static::$vernacular) {
             static::$vernacular = App::make('vernacular');

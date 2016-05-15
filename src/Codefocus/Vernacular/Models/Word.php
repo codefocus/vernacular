@@ -16,4 +16,3 @@ class Word extends Model
         //echo 'Codefocus/Vernacular/Word.';
     }
 }    //	class Word
-
