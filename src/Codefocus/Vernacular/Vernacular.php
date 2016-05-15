@@ -174,32 +174,34 @@ class Vernacular
     protected function getRawBigrams(array $tokens, array $words, $minDistance, $maxDistance)
     {
         $numTokens = count($tokens);
-        $distance = 1;
-        $iMaxTokenA = $numTokens - $distance;
         
-        //  Generate raw bigrams from the tokens, consisting of
-        //  an array of the ids of both words, and the distance.
-        $rawBigrams = [];
-        for ($iTokenA = 0; $iTokenA < $iMaxTokenA; ++$iTokenA) {
-            $iTokenB = $iTokenA + $distance;
-            //  Get the Word ids for these tokens,
-            //  and combine them into a single unique lookup key.
-            $wordAId = $words[$tokens[$iTokenA]]->id;
-            $wordBId = $words[$tokens[$iTokenB]]->id;
-            $lookupKey = $wordAId << 32 + $wordBId;
-            //  Create an array for this bigram if we don't already have one.
-            if (!isset($rawBigrams[$lookupKey])) {
-                $rawBigrams[$lookupKey] = [
-                    'word_a_id' => $wordAId,
-                    'word_b_id' => $wordBId,
-                    'distances' => [],
-                ];
+        for($distance = $minDistance; $distance <= $maxDistance; ++$distance) {
+            $iMaxTokenA = $numTokens - $distance;
+            
+            //  Generate raw bigrams from the tokens, consisting of
+            //  an array of the ids of both words, and the distance.
+            $rawBigrams = [];
+            for ($iTokenA = 0; $iTokenA < $iMaxTokenA; ++$iTokenA) {
+                $iTokenB = $iTokenA + $distance;
+                //  Get the Word ids for these tokens,
+                //  and combine them into a single unique lookup key.
+                $wordAId = $words[$tokens[$iTokenA]]->id;
+                $wordBId = $words[$tokens[$iTokenB]]->id;
+                $lookupKey = $wordAId << 32 + $wordBId;
+                //  Create an array for this bigram if we don't already have one.
+                if (!isset($rawBigrams[$lookupKey])) {
+                    $rawBigrams[$lookupKey] = [
+                        'word_a_id' => $wordAId,
+                        'word_b_id' => $wordBId,
+                        'distances' => [],
+                    ];
+                }
+                //  Increment this bigram's frequency for the current distance.
+                if (!isset($rawBigrams[$lookupKey]['distances'][$distance])) {
+                    $rawBigrams[$lookupKey]['distances'][$distance] = 0;
+                }
+                ++$rawBigrams[$lookupKey]['distances'][$distance];
             }
-            //  Increment this bigram's frequency for the current distance.
-            if (!isset($rawBigrams[$lookupKey]['distances'][$distance])) {
-                $rawBigrams[$lookupKey]['distances'][$distance] = 0;
-            }
-            ++$rawBigrams[$lookupKey]['distances'][$distance];
         }
         return $rawBigrams;
     }   //  function getRawBigrams
