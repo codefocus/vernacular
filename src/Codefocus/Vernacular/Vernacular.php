@@ -131,12 +131,18 @@ class Vernacular
                 //  Save.
                 $words[$token]->save();
             }
-            //  Create Bigrams.
-            $bigrams = $this->getBigrams($tokens, $words);
+            //  Create Bigrams, and return metadata.
+            $documentBigramMetaData = $this->getBigrams($tokens, $words);
             //  Link Bigrams to the Document.
-            foreach($bigrams as $bigram) {
-                //  @TODO
-                //  https://github.com/codefocus/vernacular/issues/7
+            //  @TODO:  Should happen in getBigrams
+            $documentBigramInsert = [];
+            foreach($documentBigramMetaData as $metaDataItem) {
+                $documentBigramInsert[] = [
+                    'document_id' => $document->id,
+                    'bigram_id' => $metaDataItem['bigram']->id,
+                    'frequency' => $metaDataItem['frequency'],
+                    //'first_instance' => @TODO: Not tracked yet.
+                ];
             }
             
             
@@ -225,14 +231,17 @@ class Vernacular
             ->orderBy('distance')
             ->get()
             ->all();
-        //  Create Bigram Model instances for new bigrams.
+        //  Create Bigram Model instances for new bigrams, and
+        //  get metadata to return (frequency in this document, first instance).
+        $documentBigramMetaData = [];
         foreach($rawBigrams as $lookupKey => $rawBigram) {
             
             $distancesToCreate  = $rawBigram['distances'];
             $currentBigrams     = [];
             
-            //  @TODO:  Optimize this by searching the $bigrams array in
-            //          a more efficient manner than 1...∞
+            //  @TODO:  Optimize this by:
+            //          - searching the $bigrams array in a more efficient manner than 1...∞
+            //          - returning raw bigrams in a structure that would eliminate the following loop
             foreach($bigrams as $bigram) {
                 if ($bigram->word_a_id < $rawBigram['word_a_id']) {
                     continue;
@@ -250,6 +259,12 @@ class Vernacular
                         //  Update this existing Bigram's frequency.
                         $bigram->frequency += $frequency;
                         ++$bigram->document_frequency;
+                        
+                        $documentBigramMetaData[] = [
+                            'bigram' => $bigram,
+                            'frequency' => $frequency,
+                            //'first_instance' => @TODO: Not yet tracked.
+                        ];
                         $distancesToCreate[$distanceToCreate] = false;
                         continue;
                     }
@@ -271,17 +286,25 @@ class Vernacular
                 $bigram->document_frequency = 1;
                 
                 $bigrams[] = $bigram;
+                
+                $documentBigramMetaData[] = [
+                    'bigram' => $bigram,
+                    'frequency' => $frequency,
+                    //'first_instance' => @TODO: Not yet tracked.
+                ];
             }
         }
         
-        //  @TODO: Optimize this into 2 queries.
+        //  Save all new and existing Bigrams to the database.
+        //  @TODO:
+        //  @OPTIMIZE:
+        //      Circumvent Eloquent to reduce this to 2 queries:
+        //      - 1 combining all updates
+        //      - 1 combining all inserts
         foreach($bigrams as $bigram) {
             $bigram->save();
         }
-        
-        
-        return $bigrams;
-        
+        return $documentBigramMetaData;
     }   //  function getBigrams
     
     
