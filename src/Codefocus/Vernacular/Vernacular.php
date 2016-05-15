@@ -7,6 +7,7 @@ use Codefocus\Vernacular\Exceptions\VernacularException;
 use Codefocus\Vernacular\Models\Document;
 use Illuminate\Database\Eloquent\Model;
 use Codefocus\Vernacular\Models\Source;
+use Codefocus\Vernacular\Models\Bigram;
 use Codefocus\Vernacular\Models\Word;
 use Exception;
 use DB;
@@ -45,6 +46,7 @@ class Vernacular
      * @return boolean
      */
     public function learnModel(Model $model) {
+        
         //  Ensure this Model exists in the database.
         if (!$model->exists()) {
             throw new VernacularException('Cannot learn an unsaved Model.');
@@ -130,9 +132,9 @@ class Vernacular
                 $words[$token]->save();
             }
             //  Create Bigrams.
-            $uniqueCountedBigrams = $this->getBigrams($tokens, $words);
+            $bigrams = $this->getBigrams($tokens, $words);
             //  Link Bigrams to the Document.
-            foreach($uniqueCountedBigrams as $bigram) {
+            foreach($bigrams as $bigram) {
                 //  @TODO
                 //  https://github.com/codefocus/vernacular/issues/7
             }
@@ -163,29 +165,23 @@ class Vernacular
      *
      * @return array
      */
-    protected function getBigrams(array $tokens, array $words)
+    protected function getRawBigrams(array $tokens, array $words, $minDistance, $maxDistance)
     {
-        //  @TODO:  issue #6: Extend default config. 
-        $minDistance = (empty($this->config['word_distance']['min']) ? 1 : $this->config['word_distance']['min']);
-        $minDistance = max($minDistance, 1);
-        $maxDistance = (empty($this->config['word_distance']['max']) ? 1 : $this->config['word_distance']['max']);
-        $maxDistance = max($minDistance, $maxDistance);
-        
-        
         $numTokens = count($tokens);
         $distance = 1;
         $iMaxTokenA = $numTokens - $distance;
         
+        //  Generate raw bigrams from the tokens, consisting of
+        //  an array of the ids of both words, and the distance.
         $rawBigrams = [];
-        
         for ($iTokenA = 0; $iTokenA < $iMaxTokenA; ++$iTokenA) {
             $iTokenB = $iTokenA + $distance;
             //  Get the Word ids for these tokens,
             //  and combine them into a single unique lookup key.
             $wordAId = $words[$tokens[$iTokenA]]->id;
             $wordBId = $words[$tokens[$iTokenB]]->id;
-            
             $lookupKey = $wordAId << 32 + $wordBId;
+            //  Create an array for this bigram if we don't already have one.
             if (!isset($rawBigrams[$lookupKey])) {
                 $rawBigrams[$lookupKey] = [
                     'word_a_id' => $wordAId,
@@ -195,34 +191,98 @@ class Vernacular
             }
             //  Increment this bigram's frequency for the current distance.
             if (!isset($rawBigrams[$lookupKey]['distances'][$distance])) {
-                $rawBigrams[$lookupKey]['distances'][$distance] = 1;
+                $rawBigrams[$lookupKey]['distances'][$distance] = 0;
             }
-            else {
-                ++$rawBigrams[$lookupKey]['distances'][$distance];
-            }
+            ++$rawBigrams[$lookupKey]['distances'][$distance];
         }
+        return $rawBigrams;
+    }   //  function getRawBigrams
+    
+    
+    /**
+     * Create Bigrams from an array of tokens.
+     * 
+     * @param array $tokens
+     * @param array $words
+     *
+     * @return array
+     */
+    protected function getBigrams(array $tokens, array $words) {
+        //  @TODO:  issue #6: Extend default config. 
+        $minDistance = (empty($this->config['word_distance']['min']) ? 1 : $this->config['word_distance']['min']);
+        $minDistance = max($minDistance, 1);
+        $maxDistance = (empty($this->config['word_distance']['max']) ? 1 : $this->config['word_distance']['max']);
+        $maxDistance = max($minDistance, $maxDistance);
+        
+        $rawBigrams = $this->getRawBigrams($tokens, $words, $minDistance, $maxDistance);
+        
         //  Now that we have the lookup keys,
         //  pull all known Bigrams in one query.
-        $bigrams = Bigram::whereIn('lookup_key', array_keys($rawBigrams))->get()->all();
+        $bigrams = Bigram::whereIn('lookup_key', array_keys($rawBigrams))
+            ->whereBetween('distance', [$minDistance, $maxDistance])
+            ->orderBy('word_a_id')
+            ->orderBy('word_b_id')
+            ->orderBy('distance')
+            ->get()
+            ->all();
         //  Create Bigram Model instances for new bigrams.
         foreach($rawBigrams as $lookupKey => $rawBigram) {
             
-            //  @TODO: unless we already have this lookup_key + distance in $bigrams
+            $distancesToCreate  = $rawBigram['distances'];
+            $currentBigrams     = [];
             
-            $bigram = new Bigram();
-            $bigram->word_a_id = $rawBigram['word_a_id'];
-            $bigram->word_b_id = $rawBigram['word_b_id'];
-            $bigram->lookup_key = $lookupKey;
-            $bigram->word_a_id = $rawBigram['word_a_id'];
+            //  @TODO:  Optimize this by searching the $bigrams array in
+            //          a more efficient manner than 1...∞
+            foreach($bigrams as $bigram) {
+                if ($bigram->word_a_id < $rawBigram['word_a_id']) {
+                    continue;
+                }
+                if ($bigram->word_b_id < $rawBigram['word_b_id']) {
+                    continue;
+                }
+                if ($bigram->word_a_id > $rawBigram['word_a_id']) {
+                    //  Current raw bigram not found in our array of Bigrams.
+                    break;
+                }
+                
+                foreach($distancesToCreate as $distanceToCreate => $frequency) {
+                    if ($bigram->distance == $distanceToCreate) {
+                        //  Update this existing Bigram's frequency.
+                        $bigram->frequency += $frequency;
+                        ++$bigram->document_frequency;
+                        $distancesToCreate[$distanceToCreate] = false;
+                        continue;
+                    }
+                }
+            }
             
-            $bigrams[] = $bigram;
+            foreach($distancesToCreate as $distanceToCreate => $frequency) {
+                if (false == $frequency) {
+                    continue;
+                }
+                //  Create new Bigram.
+                $bigram = new Bigram();
+                $bigram->word_a_id = $rawBigram['word_a_id'];
+                $bigram->word_b_id = $rawBigram['word_b_id'];
+                $bigram->lookup_key = $lookupKey;
+                $bigram->distance = $distanceToCreate;
+                //  Set this new Bigram's frequency.
+                $bigram->frequency = $frequency;
+                $bigram->document_frequency = 1;
+                
+                $bigrams[] = $bigram;
+            }
+        }
+        
+        //  @TODO: Optimize this into 2 queries.
+        foreach($bigrams as $bigram) {
+            $bigram->save();
         }
         
         
-        
-        
         return $bigrams;
-    }
+        
+    }   //  function getBigrams
     
     
     
