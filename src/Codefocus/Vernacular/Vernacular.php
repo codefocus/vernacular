@@ -146,7 +146,9 @@ class Vernacular
             }
             
             
-            //  @TODO:  if model->vernacularTags, tag document and bigrams.
+            //  @TODO:  if model->vernacularTags:
+            //          - tag document
+            //          - recalculate tag confidence for bigrams.
             //          https://github.com/codefocus/vernacular/issues/4
             
         

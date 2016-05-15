@@ -33,6 +33,11 @@ class VernacularServiceProvider extends \Illuminate\Support\ServiceProvider
      */
     public function register()
     {
+        $this->mergeConfigFrom(
+            __DIR__.'/../../../../publish/config/vernacular.php',
+            'vernacular'
+        );
+        
         App::singleton('vernacular', function () {
             return new Vernacular(config('vernacular'));
         });
