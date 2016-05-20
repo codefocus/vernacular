@@ -22,7 +22,6 @@ class Vernacular
 
     public function __construct(array $config = [])
     {
-        //  @TODO:  issue #6: Extend default config.
         if (empty($config)) {
             $config = config('vernacular');
         }
@@ -47,7 +46,6 @@ class Vernacular
      */
     public function learnModel(Model $model)
     {
-        
         //  Ensure this Model exists in the database.
         if (!$model->exists()) {
             throw new VernacularException('Cannot learn an unsaved Model.');
@@ -220,12 +218,14 @@ class Vernacular
      */
     protected function getBigrams(array $tokens, array $words)
     {
-        //  @TODO:  issue #6: Extend default config. 
-        $minDistance = (empty($this->config['word_distance']['min']) ? 1 : $this->config['word_distance']['min']);
-        $minDistance = max($minDistance, 1);
-        $maxDistance = (empty($this->config['word_distance']['max']) ? 1 : $this->config['word_distance']['max']);
-        $maxDistance = max($minDistance, $maxDistance);
-        
+        $minDistance = max(
+            1,
+            (empty($this->config['word_distance']['min']) ? 1 : $this->config['word_distance']['min'])
+        );
+        $maxDistance = max(
+            $minDistance,
+            (empty($this->config['word_distance']['max']) ? 1 : $this->config['word_distance']['max'])
+        );
         $rawBigrams = $this->getRawBigrams($tokens, $words, $minDistance, $maxDistance);
         
         //  Now that we have the lookup keys,
@@ -246,7 +246,7 @@ class Vernacular
             
             //  @TODO:  Optimize this by:
             //          - searching the $bigrams array in a more efficient manner than 1...∞
-            //          - returning raw bigrams in a structure that would eliminate the following loop
+            //          - returning raw bigrams in a structure that eliminates the need for the following loop:
             foreach ($bigrams as $bigram) {
                 if ($bigram->word_a_id < $rawBigram['word_a_id']) {
                     continue;

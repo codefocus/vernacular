@@ -1,8 +1,9 @@
 <?php
 
-use Illuminate\Foundation\Testing\WithoutMiddleware;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\WithoutMiddleware;
+use Laracasts\TestDummy\Factory;
 
 class LearnTest extends TestCase
 {
@@ -10,22 +11,21 @@ class LearnTest extends TestCase
     use DatabaseMigrations;
     
     /**
-     * A basic test example.
+     * Test test, verifying that the factory works as intended.
      *
      * @return void
      */
     public function testExample()
     {
-        //  Simple test to ensure the unit testing environment is set up correctly.
-        $tag = new \Codefocus\Vernacular\Models\Tag;
-        $tag->name = 'Save in test database';
-        $tag->save();
+        //  Generate a random ImaginaryWebsite model instance.
+        $website = Factory::create(ImaginaryWebsite::class);
+        //  Save.
+        $website->save();
         
         $this->seeInDatabase(
-            'vernacular_tag', [
+            'imaginary_website', [
                 'id' => 1
             ]
         );
-        
     }
 }

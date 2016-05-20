@@ -10,7 +10,7 @@ class TestCase extends Illuminate\Foundation\Testing\TestCase
     protected $baseUrl = 'http://localhost';
 
     /**
-     * Creates the application.
+     * Create the application.
      *
      * @return \Illuminate\Foundation\Application
      */
@@ -30,15 +30,16 @@ class TestCase extends Illuminate\Foundation\Testing\TestCase
     public function setUp()
     {
         parent::setUp();
-
-        $this->app['config']->set('database.default','sqlite'); 
+        
+        //  Use a blank in-memory database for unit testing.
+        $this->app['config']->set('database.default', 'sqlite');
         $this->app['config']->set('database.connections.sqlite.database', ':memory:');
-
+        //  Create all Vernacular tables.
         $this->migrate();
     }
     
     /**
-     * run package database migrations
+     * Run package database migrations.
      *
      * @return void
      */
@@ -48,5 +49,5 @@ class TestCase extends Illuminate\Foundation\Testing\TestCase
             '--path' => '../../../publish/migrations'
         ]);
     }
-
+    
 }

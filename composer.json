@@ -38,7 +38,10 @@
         }
     },
     "autoload-dev": {
-        "classmap": [ "tests/TestCase.php" ],
+        "classmap": [
+            "tests/TestCase.php",
+            "tests/Models/ImaginaryWebsite.php"
+        ],
         "psr-0": {
             "": "src/"
         }

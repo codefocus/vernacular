@@ -13,6 +13,18 @@ class CreateVernacularTables extends Migration
      */
     public function up()
     {
+        //  Create additional tables only when running unit tests.
+        if ('testing' == env('APP_ENV')) {
+            //	Test table for imaginary app model.
+            Schema::create('imaginary_website', function (Blueprint $table) {
+                $table->increments('id')->unsigned();
+                $table->string('title', 128);
+                $table->text('description')->nullable();
+                $table->text('content');
+                $table->string('foo', 128)->nullable();
+            });
+        }
+        
         //	Holds single words.
         Schema::create('vernacular_word', function (Blueprint $table) {
             //  Columns
