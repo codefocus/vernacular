@@ -229,8 +229,6 @@ class Vernacular
         );
         $rawBigrams = $this->getRawBigrams($tokens, $words, $minDistance, $maxDistance);
         
-        dump($rawBigrams);
-        
         //  Now that we have the lookup keys,
         //  pull all known Bigrams in one query.
         $bigrams = Bigram::whereIn('lookup_key', array_keys($rawBigrams))
