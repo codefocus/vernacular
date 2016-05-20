@@ -9,11 +9,10 @@ class ImaginaryWebsite extends Model
     use \Codefocus\Vernacular\Traits\Learnable;
     public $vernacularAttributes = ['content'];
     //public $vernacularTags = ['positive'];
-    
+
     
     protected $table = 'imaginary_website';
     protected $primaryKey = 'id';
 
     public $timestamps = false;
-    
 }    //	class ImaginaryWebsite

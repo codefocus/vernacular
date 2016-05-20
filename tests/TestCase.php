@@ -49,5 +49,4 @@ class TestCase extends Illuminate\Foundation\Testing\TestCase
             '--path' => '../../../publish/migrations'
         ]);
     }
-    
 }

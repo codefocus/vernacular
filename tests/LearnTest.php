@@ -38,7 +38,5 @@ class LearnTest extends TestCase
             ]
         );
         $this->assertEquals($website->id, 1);
-        
-        
     }
 }
