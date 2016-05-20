@@ -40,7 +40,7 @@
     "autoload-dev": {
         "classmap": [
             "tests/TestCase.php",
-            "tests/Models/ImaginaryWebsite.php"
+            "tests/Models/"
         ],
         "psr-0": {
             "": "src/"

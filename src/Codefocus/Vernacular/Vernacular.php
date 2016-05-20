@@ -188,7 +188,8 @@ class Vernacular
                 //  and combine them into a single unique lookup key.
                 $wordAId = $words[$tokens[$iTokenA]]->id;
                 $wordBId = $words[$tokens[$iTokenB]]->id;
-                $lookupKey = $wordAId << 32 + $wordBId;
+                
+                $lookupKey = ($wordAId << 32) + $wordBId;
                 //  Create an array for this bigram if we don't already have one.
                 if (!isset($rawBigrams[$lookupKey])) {
                     $rawBigrams[$lookupKey] = [
@@ -227,6 +228,8 @@ class Vernacular
             (empty($this->config['word_distance']['max']) ? 1 : $this->config['word_distance']['max'])
         );
         $rawBigrams = $this->getRawBigrams($tokens, $words, $minDistance, $maxDistance);
+        
+        dump($rawBigrams);
         
         //  Now that we have the lookup keys,
         //  pull all known Bigrams in one query.
