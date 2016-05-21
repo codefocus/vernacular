@@ -17,7 +17,7 @@ class BigramKeyService
         //  to create a 2-bit space for the distance. 
         //  This makes the key 100% unique, but imposes two limitations:
         //  -   Maximum number of words is reduced to 2147483647.
-        //  -   Maximum distance is 4.
+        //  -   Maximum distance is 4 (because the minimum distance is 1).
         //  
         
         //  @TODO: Impose max distance when loading the config.
