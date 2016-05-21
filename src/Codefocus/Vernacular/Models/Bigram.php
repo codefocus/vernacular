@@ -10,4 +10,5 @@ class Bigram extends Model
     protected $primaryKey = 'id';
 
     public $timestamps = false;
+    
 }    //	class Bigram
