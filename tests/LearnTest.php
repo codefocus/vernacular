@@ -22,6 +22,7 @@ class LearnTest extends TestCase
      * @covers \Codefocus\Vernacular\Models\Document
      * @covers \Codefocus\Vernacular\Models\Word
      * @covers \Codefocus\Vernacular\Models\Bigram
+     * @covers \Codefocus\Vernacular\Services\BigramKeyService
      * @return void
      */
     public function testExample()
