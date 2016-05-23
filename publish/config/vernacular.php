@@ -56,19 +56,48 @@ return [
     */
 
     'max_rows_per_query' => 128,
+    
+    'filters' => [
+        /*
+        |--------------------------------------------------------------------------
+        | Filter stopwords
+        |--------------------------------------------------------------------------
+        |
+        | Ignore frequently used words that do not add significant information.
+        | 
+        | Supported: true, false, <filename>
+        |
+        */
 
-    /*
-    |--------------------------------------------------------------------------
-    | Stopwords
-    |--------------------------------------------------------------------------
-    |
-    | Ignore frequently used words that do not add significant information.
-    | 
-    | Supported: true, false, <filename>
-    |
-    */
+        'stopwords' => true,
+        
+        /*
+        |--------------------------------------------------------------------------
+        | Filter URLs
+        |--------------------------------------------------------------------------
+        |
+        | Whether to ignore urls when parsing a document.
+        | 
+        | Supported: true, false
+        |
+        */
 
-    'stopwords' => true,
+        'urls' => true,
+        
+        /*
+        |--------------------------------------------------------------------------
+        | Filter HTML tags
+        |--------------------------------------------------------------------------
+        |
+        | Whether to ignore HTML tags when parsing a document.
+        | 
+        | Supported: true, false
+        |
+        */
+
+        'html' => true,
+    
+    ],
 
     /*
     |--------------------------------------------------------------------------

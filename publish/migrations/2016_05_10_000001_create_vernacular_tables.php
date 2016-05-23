@@ -112,6 +112,7 @@ class CreateVernacularTables extends Migration
             //  Stored as a value between 0.000 and 1.000.
             //  @TODO
             //$table->decimal('first_instance', 4, 3);
+            $table->integer('first_instance')->unsigned();
             //  Indices
             $table->unique(['document_id', 'bigram_id']);
         });

@@ -10,6 +10,9 @@ class Whitespace implements TokenizerInterface
     const REGEX_LOOKBEHIND_NO_ALPHANUMERIC = '(?<!\pL|\pN)';
     const REGEX_LOOKAHEAD_NO_ALPHANUMERIC = '(?!\pL|\pN)';
     const REGEX_ALPHANUMERIC = '[\pL\pN]';
+    
+    const REGEX_APOSTROPHE_SUFFIXES = '(?:[\'`‘’]\pL{1,3})';
+    
     const REGEX_ALPHA = '\pL';
 
     protected $minWordLength;
@@ -44,11 +47,18 @@ class Whitespace implements TokenizerInterface
 
         //	Convert to lowercase
         $document = mb_strtolower($document);
-
+        
+        
         //  Extract tokens.
         $regex = self::REGEX_LOOKBEHIND_NO_ALPHANUMERIC.
-                      self::REGEX_ALPHA.'{'.$this->minWordLength.','.$this->maxWordLength.'}'.
+                      self::REGEX_ALPHANUMERIC.'{'.$this->minWordLength.','.$this->maxWordLength.'}'.
+                      self::REGEX_APOSTROPHE_SUFFIXES.'?'.
                       self::REGEX_LOOKAHEAD_NO_ALPHANUMERIC;
+
+        // //  Extract tokens.
+        // $regex = self::REGEX_LOOKBEHIND_NO_ALPHANUMERIC.
+        //               self::REGEX_ALPHA.'{'.$this->minWordLength.','.$this->maxWordLength.'}'.
+        //               self::REGEX_LOOKAHEAD_NO_ALPHANUMERIC;
         if (false === preg_match_all('/'.$regex.'/u', $document, $matches)) {
             //  No acceptable tokens found in this document.
             return false;

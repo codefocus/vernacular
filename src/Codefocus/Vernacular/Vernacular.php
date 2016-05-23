@@ -87,14 +87,30 @@ class Vernacular
                 static::$documents[$sourceId][$modelId] = $document;
             }
             
-            //  Extract tokens from each learnable attribute.
-            $tokens = [];
+            //  Extract content from each learnable attribute.
+            
+            $content = '';
             foreach ($model->vernacularAttributes as $attribute) {
-                $tokens += $this->tokenizer->tokenize($model->$attribute);
+                $content .= $model->$attribute.' ';
             }
             
+            //  Apply HTML filter, if configured.
+            //  @TODO: Move this to Codefocus\Vernacular\Filters\HtmlFilter
+            if ($this->config['filters']['html']) {
+                $content = strip_tags($content);
+            }
             
-            //  @TODO:  Filter stopwords here.
+            //  Apply URL filter, if configured.
+            //  @TODO: Move this to Codefocus\Vernacular\Filters\UrlFilter
+            if ($this->config['filters']['urls']) {
+                $content = preg_replace('/[a-z]{2,8}:\/\/([a-z0-9-\.]+(\/[^\/\s]+)?)?/', ' ___ ', $content);
+            }
+            
+            //  Extract tokens from this content.
+            $tokens = $this->tokenizer->tokenize($content);
+            
+            
+            //  @TODO:  Filter stopwords here, if configured.
             //          https://github.com/codefocus/vernacular/issues/9
 
             
@@ -190,9 +206,12 @@ class Vernacular
                 );
                 //  Increment this bigram's frequency.
                 if (!isset($rawBigrams[$lookupKey])) {
-                    $rawBigrams[$lookupKey] = 0;
+                    $rawBigrams[$lookupKey] = [
+                        'frequency'         => 0,
+                        'first_instance'    => $iTokenA,
+                    ];
                 }
-                ++$rawBigrams[$lookupKey];
+                ++$rawBigrams[$lookupKey]['frequency'];
             }
         }
         return $rawBigrams;
@@ -225,28 +244,37 @@ class Vernacular
         $bigramDataToInsert = [];
         $bigramDataToUpdate = [];
         $bigramDataToLinkToDocument = [];
-        foreach ($rawBigrams as $lookupKey => $frequency) {
+        foreach ($rawBigrams as $lookupKey => $rawBigram) {
+            
+            $frequency = $rawBigram['frequency'];
+            
             if (isset($bigrams[$lookupKey])) {
                 //  Generate UPDATE data for this bigram.
                 if (!isset($bigramDataToUpdate[$frequency])) {
                     $bigramDataToUpdate[$frequency] = [];
                 }
                 $bigramDataToUpdate[$frequency][] = $bigrams[$lookupKey]->id;
-                $bigramDataToLinkToDocument[] = [
-                    'document_id'   => $document->id,
-                    'bigram_id'     => $bigrams[$lookupKey]->id,
-                    'frequency'     => $frequency,
+                $bigramDataToLinkToDocument[$lookupKey] = [
+                    'document_id'       => $document->id,
+                    'bigram_id'         => $bigrams[$lookupKey]->id,
+                    'frequency'         => $frequency,
+                    'first_instance'    => $rawBigram['first_instance'],
                 ];
             } else {
                 //  Generate INSERT data for this bigram.
                 $bigramDataToInsert[] = BigramKeyService::toArray($lookupKey, $frequency);
+                $bigramDataToLinkToDocument[$lookupKey] = [
+                    'document_id'       => $document->id,
+                    //'bigram_id'         => $bigrams[$lookupKey]->id,
+                    'frequency'         => $frequency,
+                    'first_instance'    => $rawBigram['first_instance'],
+                ];
             }
         }
         unset($bigrams);
         
         //  Split into multiple insert statements,
         //  to prevent "Too many SQL variables" exception.
-        //  @TODO @HARDCODED: Make max rows per query configurable.
         //  
         //  Insert new bigrams into the database.
         $maxRowsPerQuery = $this->config['max_rows_per_query'];
@@ -258,18 +286,16 @@ class Vernacular
             //  Get the ids of these newly inserted Bigrams,
             //  and add these to our data to link to the Document.
             $bigramDataChunk = collect($bigramDataChunk)->keyBy('lookup_key');
-            $newlyInsertedIds = DB::table('vernacular_bigram')
-                ->select('id', 'lookup_key')
-                ->whereIn('lookup_key', $bigramDataChunk->pluck('lookup_key'))
-                ->get()
+            $newlyInsertedIds = collect(
+                DB::table('vernacular_bigram')
+                    ->select('id', 'lookup_key')
+                    ->whereIn('lookup_key', $bigramDataChunk->pluck('lookup_key'))
+                    ->get()
+                )
                 ->keyBy('lookup_key')
                 ;
             foreach($bigramDataChunk as $lookupKey => $bigram) {
-                $bigramDataToLinkToDocument[] = [
-                    'document_id'   => $document->id,
-                    'bigram_id'     => $newlyInsertedIds[$lookupKey]->id,
-                    'frequency'     => $bigram['frequency'],
-                ];
+                $bigramDataToLinkToDocument[$lookupKey]['bigram_id'] = $newlyInsertedIds[$lookupKey]->id;
             }
         }
         unset($chunkedBigramDataToInsert);
