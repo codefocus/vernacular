@@ -6,7 +6,8 @@ class BigramKeyService
 {
     
     
-    public static function make($wordAId, $wordBId, $distance) {
+    public static function make($wordAId, $wordBId, $distance)
+    {
         //  The lookup key is an unsigned 64-bit integer (BIGINT in MySQL),
         //  containing both word ids and the distance.
         //  
@@ -19,17 +20,18 @@ class BigramKeyService
         //  -   Maximum number of words is reduced to 2147483647.
         //  -   Maximum distance is 4 (because the minimum distance is 1).
         //  
-        
+
         //  @TODO: Impose max distance when loading the config.
-        
+
         //  @TODO: Use bcmath on 32bit systems
-        
+
         return ($wordAId << 33) + ($wordBId << 2) + ($distance - 1);
     }
     
     
     
-    public static function toArray($key, $frequency = 1, $documentFrequency = 1) {
+    public static function toArray($key, $frequency = 1, $documentFrequency = 1)
+    {
         return [
             'lookup_key'            => $key,
             'word_a_id'             => $key >> 33,
@@ -39,7 +41,4 @@ class BigramKeyService
             'document_frequency'    => $documentFrequency,
         ];
     }
-    
-    
-    
 }

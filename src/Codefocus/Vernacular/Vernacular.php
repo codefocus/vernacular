@@ -131,7 +131,7 @@ class Vernacular
                 //  Save.
                 $words[$token]->save();
             }
-            //  Create Bigrams.
+            //  Create Bigrams, and link them to this Document.
             $this->createBigrams($document, $tokens, $words);
 
             
@@ -163,8 +163,16 @@ class Vernacular
      *
      * @return array
      */
-    protected function getRawBigrams(array $tokens, array $words, $minDistance, $maxDistance)
+    protected function getRawBigrams(array $tokens, array $words)
     {
+        $minDistance = min(4, max(
+            1,
+            (empty($this->config['word_distance']['min']) ? 1 : $this->config['word_distance']['min'])
+        ));
+        $maxDistance = min(4, max(
+            $minDistance,
+            (empty($this->config['word_distance']['max']) ? $minDistance : $this->config['word_distance']['max'])
+        ));
         $numTokens = count($tokens);
         $rawBigrams = [];
         for ($distance = $minDistance; $distance <= $maxDistance; ++$distance) {
@@ -201,35 +209,22 @@ class Vernacular
      */
     protected function createBigrams(Document $document, array $tokens, array $words)
     {
-        $minDistance = max(
-            1,
-            (empty($this->config['word_distance']['min']) ? 1 : $this->config['word_distance']['min'])
-        );
-        $maxDistance = max(
-            $minDistance,
-            (empty($this->config['word_distance']['max']) ? $minDistance : $this->config['word_distance']['max'])
-        );
-        $rawBigrams = $this->getRawBigrams($tokens, $words, $minDistance, $maxDistance);
+        $rawBigrams = $this->getRawBigrams($tokens, $words);
         
         //  Now that we have the lookup keys,
         //  pull all known Bigrams in one query.
         $bigrams = Bigram::whereIn('lookup_key', array_keys($rawBigrams))
-            //->whereBetween('distance', [$minDistance, $maxDistance])
             ->orderBy('word_a_id')
             ->orderBy('word_b_id')
             ->orderBy('distance')
             ->get()
             ->keyBy('lookup_key')
             ->all();
-        //  Create Bigram Model instances for new bigrams, and
-        //  get metadata to return (frequency in this document, first instance).
-        //  @TODO: Vague variable name.
-        $documentBigramMetaData = [];
-        
         //  Create ready-to-use data arrays for inserting and updating
         //  these bigrams, so that we can do this in two queries.
         $bigramDataToInsert = [];
         $bigramDataToUpdate = [];
+        $bigramDataToLinkToDocument = [];
         foreach ($rawBigrams as $lookupKey => $frequency) {
             if (isset($bigrams[$lookupKey])) {
                 //  Generate UPDATE data for this bigram.
@@ -237,38 +232,72 @@ class Vernacular
                     $bigramDataToUpdate[$frequency] = [];
                 }
                 $bigramDataToUpdate[$frequency][] = $bigrams[$lookupKey]->id;
-            }
-            else {
+                $bigramDataToLinkToDocument[] = [
+                    'document_id'   => $document->id,
+                    'bigram_id'     => $bigrams[$lookupKey]->id,
+                    'frequency'     => $frequency,
+                ];
+            } else {
                 //  Generate INSERT data for this bigram.
                 $bigramDataToInsert[] = BigramKeyService::toArray($lookupKey, $frequency);
             }
         }
+        unset($bigrams);
         
+        //  Split into multiple insert statements,
+        //  to prevent "Too many SQL variables" exception.
+        //  @TODO @HARDCODED: Make max rows per query configurable.
+        //  
         //  Insert new bigrams into the database.
-        DB::table('vernacular_bigram')->insert($bigramDataToInsert);
-        //  Update the frequency of existing bigrams.
-        foreach($bigramDataToUpdate as $frequency => $bigramIds) {
-            DB::table('vernacular_bigram')
-                ->whereIn('id', $bigramIds)
-                ->increment('frequency', $frequency);
-            DB::table('vernacular_bigram')
-                ->whereIn('id', $bigramIds)
-                ->increment('document_frequency', 1);
+        $maxRowsPerQuery = $this->config['max_rows_per_query'];
+        $chunkedBigramDataToInsert = array_chunk($bigramDataToInsert, $maxRowsPerQuery);
+        unset($bigramDataToInsert);
+        foreach($chunkedBigramDataToInsert as $bigramDataChunk) {
+            //  Insert this chunk of new Bigrams.
+            DB::table('vernacular_bigram')->insert($bigramDataChunk);
+            //  Get the ids of these newly inserted Bigrams,
+            //  and add these to our data to link to the Document.
+            $bigramDataChunk = collect($bigramDataChunk)->keyBy('lookup_key');
+            $newlyInsertedIds = DB::table('vernacular_bigram')
+                ->select('id', 'lookup_key')
+                ->whereIn('lookup_key', $bigramDataChunk->pluck('lookup_key'))
+                ->get()
+                ->keyBy('lookup_key')
+                ;
+            foreach($bigramDataChunk as $lookupKey => $bigram) {
+                $bigramDataToLinkToDocument[] = [
+                    'document_id'   => $document->id,
+                    'bigram_id'     => $newlyInsertedIds[$lookupKey]->id,
+                    'frequency'     => $bigram['frequency'],
+                ];
+            }
         }
+        unset($chunkedBigramDataToInsert);
+        unset($bigramDataChunk);
+        unset($newlyInsertedIds);
         
+        //  Update the frequency of existing bigrams.
+        foreach ($bigramDataToUpdate as $frequency => $bigramIds) {
+            $chunkedBigramIds = array_chunk($bigramIds, $maxRowsPerQuery);
+            foreach($chunkedBigramIds as $bigramIdsChunk) {
+                DB::table('vernacular_bigram')
+                    ->whereIn('id', $bigramIdsChunk)
+                    ->increment('frequency', $frequency);
+                DB::table('vernacular_bigram')
+                    ->whereIn('id', $bigramIdsChunk)
+                    ->increment('document_frequency', 1);
+            }
+        }
+        unset($bigramDataToUpdate);
+        unset($chunkedBigramIds);
         
         //  Link Bigrams to the Document.
-        //  @TODO
-        // $documentBigramInsert = [];
-        // foreach ($documentBigramMetaData as $metaDataItem) {
-        //     $documentBigramInsert[] = [
-        //         'document_id' => $document->id,
-        //         'bigram_id' => $metaDataItem['bigram']->id,
-        //         'frequency' => $metaDataItem['frequency'],
-        //         //'first_instance' => @TODO: Not tracked yet.
-        //     ];
-        // }
+        //  @TODO:  Configure whether or not to store documents.
+        //          Not storing documents will disable certain features.
+        $bigramDataToLinkToDocumentChunked = array_chunk($bigramDataToLinkToDocument, $maxRowsPerQuery);
+        foreach($bigramDataToLinkToDocumentChunked as $bigramDataChunk) {
+            DB::table('vernacular_document_bigram')->insert($bigramDataChunk);
+        }
         
     }   //  function createBigrams
-    
 }    //	class Vernacular

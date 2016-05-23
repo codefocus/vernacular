@@ -41,6 +41,21 @@ return [
         'min' => 1,
         'max' => 16,
     ],
+    
+    /*
+    |--------------------------------------------------------------------------
+    | Rows per query
+    |--------------------------------------------------------------------------
+    |
+    | Vernacular combines multiple INSERT and UPDATE statements into a single
+    | query. Because most database engines limit the number of variables per
+    | statement, these statements are chunked.
+    | This setting specifies the maximum number of rows per INSERT or UPDATE
+    | statement. 
+    |
+    */
+
+    'max_rows_per_query' => 128,
 
     /*
     |--------------------------------------------------------------------------

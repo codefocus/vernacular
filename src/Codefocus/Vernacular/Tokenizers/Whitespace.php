@@ -56,6 +56,5 @@ class Whitespace implements TokenizerInterface
 
         //  Return found tokens.
         return $matches[0];
-        //return array_values($matches[0]);
     }    //	function tokenize
 }

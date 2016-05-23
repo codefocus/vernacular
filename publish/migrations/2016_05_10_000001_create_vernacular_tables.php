@@ -110,7 +110,8 @@ class CreateVernacularTables extends Migration
             $table->integer('frequency')->unsigned();
             //  The first instance of this bigram in this document.
             //  Stored as a value between 0.000 and 1.000.
-            $table->decimal('first_instance', 4, 3);
+            //  @TODO
+            //$table->decimal('first_instance', 4, 3);
             //  Indices
             $table->unique(['document_id', 'bigram_id']);
         });
