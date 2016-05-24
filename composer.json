@@ -23,7 +23,8 @@
     "prefer-stable": true,
     "require": {
         "php": ">=5.4.0",
-        "laravel/laravel": "dev-develop"
+        "laravel/laravel": "dev-develop",
+        "symfony/dom-crawler": "^3.0"
     },
     "require-dev": {
         "fabpot/php-cs-fixer": "^1.11",

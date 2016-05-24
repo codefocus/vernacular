@@ -85,7 +85,7 @@ class LearnTest extends TestCase
         }
         
         //  Save.
-        foreach($websites as $website) {
+        foreach ($websites as $website) {
             $website->save();
         }
         
@@ -96,8 +96,5 @@ class LearnTest extends TestCase
                 'id' => 1
             ]
         );
-        
     }
-    
-    
 }

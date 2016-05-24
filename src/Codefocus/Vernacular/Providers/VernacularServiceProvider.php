@@ -43,3 +43,4 @@ class VernacularServiceProvider extends \Illuminate\Support\ServiceProvider
         });
     }
 }    //	class VernacularServiceProvider
+

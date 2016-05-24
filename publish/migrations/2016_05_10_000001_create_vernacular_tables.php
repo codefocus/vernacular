@@ -25,6 +25,12 @@ class CreateVernacularTables extends Migration
             });
         }
         
+        //	Dummy source model.
+        Schema::create('vernacular_dummy', function (Blueprint $table) {
+            //  Columns
+            $table->increments('id')->unsigned();
+        });
+        
         //	Holds single words.
         Schema::create('vernacular_word', function (Blueprint $table) {
             //  Columns

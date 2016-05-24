@@ -11,3 +11,4 @@ class Tag extends Model
 
     public $timestamps = false;
 }    //	class Tag
+

@@ -9,6 +9,7 @@ use Codefocus\Vernacular\Models\Document;
 use Illuminate\Database\Eloquent\Model;
 use Codefocus\Vernacular\Models\Source;
 use Codefocus\Vernacular\Models\Bigram;
+use Codefocus\Vernacular\Models\Dummy;
 use Codefocus\Vernacular\Models\Word;
 use Exception;
 use DB;
@@ -33,6 +34,145 @@ class Vernacular
             throw new VernacularException('Tokenizer should implement '.TokenizerInterface::class);
         }
     }
+    
+    
+    public function learnUrl($url)
+    {
+        $html = file_get_contents($url);
+        
+        $htmlToTextOptions = [
+            'do_links' => 'none',
+            'width' => 0,
+        ];
+        
+        $htmlToText = new \Html2Text\Html2Text($html, $htmlToTextOptions);
+        dd($htmlToText->getText());
+    }
+    
+    
+    protected function getSource(Model $model)
+    {
+        //  @DEPRECATED
+    }
+    
+    /**
+     * Return a Document instance for this model,
+     * either from cache or from the database.
+     * 
+     * @param Model $model
+     *
+     * @return Document
+     */
+    protected function getDocumentForModel(Model $model)
+    {
+        //  Ensure this Model exists in the database.
+        if (!$model->exists()) {
+            throw new VernacularException('Cannot learn an unsaved Model.');
+        }
+        //  Lookup, load or create this Model's Source (reference to Model).
+        $className = get_class($model);
+        if (!isset(static::$sources[$className])) {
+            static::$sources[$className] = Source::firstOrCreate(['model_class' => $className]);
+        }
+        //  Lookup, load or create this Document (reference to Model instance).
+        $sourceId = static::$sources[$className]->id;
+        $modelId = $model->id;
+        if (!isset(static::$documents[$sourceId]) or !isset(static::$documents[$sourceId][$modelId])) {
+            $document = Document
+                ::where('source_id', '=', $sourceId)
+                ->where('source_model_id', '=', $modelId)
+                ->first();
+            if (!$document) {
+                $document = new Document;
+                $document->source_id = $sourceId;
+                $document->source_model_id = $modelId;
+            }
+            static::$documents[$sourceId][$modelId] = $document;
+        }
+        return static::$documents[$sourceId][$modelId];
+    }
+    
+    
+    
+    /**
+     * Learn a Document.
+     * 
+     * @throws VernacularException
+     * 
+     * @return boolean
+     */
+    public function learnDocument($content, Document $document = null)
+    {
+        if (null === $document) {
+            //  Create a Dummy model to serve as the source Document,
+            //  if none is provided.
+            $model = new Dummy;
+            $model->save();
+            $document = $this->getDocumentForModel($model);
+        }
+        
+        //  Apply HTML filter, if configured.
+        //  @TODO: Abstract to Codefocus\Vernacular\Filters\HtmlFilter
+        //  @TODO: Also, strip_tags is not sufficient.
+        // if ($this->config['filters']['html']) {
+        //     $content = strip_tags($content);
+        // }
+
+        //  Apply URL filter, if configured.
+        //  @TODO: Abstract to Codefocus\Vernacular\Filters\UrlFilter
+        if ($this->config['filters']['urls']) {
+            $content = preg_replace('/[a-z]{2,8}:\/\/([a-z0-9-\.]+(\/[^\/\s]+)?)?/', ' ___ ', $content);
+        }
+        
+        //  Extract tokens from this content.
+        $tokens = $this->tokenizer->tokenize($content);
+        
+        
+        //  @TODO:  Filter stopwords here, if configured.
+        //          https://github.com/codefocus/vernacular/issues/9
+
+        
+        $numTokens = count($tokens);
+        if (0 == $numTokens) {
+            //  No tokens in this document.
+            throw new VernacularException('No words found in this Model.');
+        }
+        
+        //  Store document word count
+        $document->word_count = $numTokens;
+        $document->save();
+        
+        //  Count occurrences of each token.
+        $uniqueCountedTokens = array_count_values($tokens);
+        //  Load existing Words, and create a Model instance for new Words.
+        $words = Word::whereIn('word', array_keys($uniqueCountedTokens))
+            ->get()
+            ->keyBy('word')
+            ->all();
+        foreach ($uniqueCountedTokens as $token => $tokenCount) {
+            if (!isset($words[$token])) {
+                $word = new Word();
+                $word->word = $token;
+                $word->soundex = soundex($token);
+                $word->frequency = 0;
+                $word->document_frequency = 0;
+                $words[$token] = $word;
+            }
+            //  Increase this Word's frequency by the number of occurrences.
+            $words[$token]->frequency += $tokenCount;
+            //  Increment this Word's document frequency.
+            $words[$token]->document_frequency++;
+            //  Save.
+            $words[$token]->save();
+        }
+        //  Create Bigrams, and link them to this Document.
+        return $this->createBigrams($document, $tokens, $words);
+        
+        //  @TODO:  if model->vernacularTags:
+        //          - tag document
+        //          - recalculate tag confidence for bigrams.
+        //          https://github.com/codefocus/vernacular/issues/4
+    }   //  function learnDocument
     
     
     /**
@@ -65,98 +205,16 @@ class Vernacular
         }
         
         DB::transaction(function () use ($model) {
-            //  Lookup, load or create this Source (reference to Model).
-            $className = get_class($model);
-            $classBaseName = class_basename($className);
-            if (!isset(static::$sources[$className])) {
-                static::$sources[$className] = Source::firstOrCreate(['model_class' => $className]);
-            }
-            //  Lookup, load or create this Document (reference to Model instance).
-            $sourceId = static::$sources[$className]->id;
-            $modelId = $model->id;
-            if (!isset(static::$documents[$sourceId]) or !isset(static::$documents[$sourceId][$modelId])) {
-                $document = Document
-                    ::where('source_id', '=', $sourceId)
-                    ->where('source_model_id', '=', $modelId)
-                    ->first();
-                if (!$document) {
-                    $document = new Document;
-                    $document->source_id = $sourceId;
-                    $document->source_model_id = $modelId;
-                }
-                static::$documents[$sourceId][$modelId] = $document;
-            }
+            //  Lookup, load or create the source Document for this Model.
+            $document = $this->getDocumentForModel($model);
             
             //  Extract content from each learnable attribute.
-            
             $content = '';
             foreach ($model->vernacularAttributes as $attribute) {
-                $content .= $model->$attribute.' ';
+                $content .= (string)$model->$attribute.' ';
             }
             
-            //  Apply HTML filter, if configured.
-            //  @TODO: Move this to Codefocus\Vernacular\Filters\HtmlFilter
-            if ($this->config['filters']['html']) {
-                $content = strip_tags($content);
-            }
-            
-            //  Apply URL filter, if configured.
-            //  @TODO: Move this to Codefocus\Vernacular\Filters\UrlFilter
-            if ($this->config['filters']['urls']) {
-                $content = preg_replace('/[a-z]{2,8}:\/\/([a-z0-9-\.]+(\/[^\/\s]+)?)?/', ' ___ ', $content);
-            }
-            
-            //  Extract tokens from this content.
-            $tokens = $this->tokenizer->tokenize($content);
-            
-            
-            //  @TODO:  Filter stopwords here, if configured.
-            //          https://github.com/codefocus/vernacular/issues/9
-
-            
-            $numTokens = count($tokens);
-            if (0 == $numTokens) {
-                //  No tokens in this document.
-                throw new Exception('No words found in this '.$classBaseName.'.');
-            }
-            
-            //  Store document word count
-            $document->word_count = $numTokens;
-            $document->save();
-            
-            //  Count occurrences of each token.
-            $uniqueCountedTokens = array_count_values($tokens);
-            //  Load existing Words, and create a Model instance for new Words.
-            $words = Word::whereIn('word', array_keys($uniqueCountedTokens))
-                ->get()
-                ->keyBy('word')
-                ->all();
-            foreach ($uniqueCountedTokens as $token => $tokenCount) {
-                if (!isset($words[$token])) {
-                    $word = new Word();
-                    $word->word = $token;
-                    $word->soundex = soundex($token);
-                    $word->frequency = 0;
-                    $word->document_frequency = 0;
-                    $words[$token] = $word;
-                }
-                //  Increase this Word's frequency by the number of occurrences.
-                $words[$token]->frequency += $tokenCount;
-                //  Increment this Word's document frequency.
-                $words[$token]->document_frequency++;
-                //  Save.
-                $words[$token]->save();
-            }
-            //  Create Bigrams, and link them to this Document.
-            $this->createBigrams($document, $tokens, $words);
-
-            
-            
-            //  @TODO:  if model->vernacularTags:
-            //          - tag document
-            //          - recalculate tag confidence for bigrams.
-            //          https://github.com/codefocus/vernacular/issues/4
-
+            $this->learnDocument($content, $document);
         
         }); //  transaction
     }   //  function learnModel
@@ -245,7 +303,6 @@ class Vernacular
         $bigramDataToUpdate = [];
         $bigramDataToLinkToDocument = [];
         foreach ($rawBigrams as $lookupKey => $rawBigram) {
-            
             $frequency = $rawBigram['frequency'];
             
             if (isset($bigrams[$lookupKey])) {
@@ -280,21 +337,21 @@ class Vernacular
         $maxRowsPerQuery = $this->config['max_rows_per_query'];
         $chunkedBigramDataToInsert = array_chunk($bigramDataToInsert, $maxRowsPerQuery);
         unset($bigramDataToInsert);
-        foreach($chunkedBigramDataToInsert as $bigramDataChunk) {
+        foreach ($chunkedBigramDataToInsert as $bigramDataChunk) {
             //  Insert this chunk of new Bigrams.
             DB::table('vernacular_bigram')->insert($bigramDataChunk);
             //  Get the ids of these newly inserted Bigrams,
             //  and add these to our data to link to the Document.
             $bigramDataChunk = collect($bigramDataChunk)->keyBy('lookup_key');
             $newlyInsertedIds = collect(
-                DB::table('vernacular_bigram')
-                    ->select('id', 'lookup_key')
-                    ->whereIn('lookup_key', $bigramDataChunk->pluck('lookup_key'))
-                    ->get()
+                    DB::table('vernacular_bigram')
+                        ->select('id', 'lookup_key')
+                        ->whereIn('lookup_key', $bigramDataChunk->pluck('lookup_key'))
+                        ->get()
                 )
                 ->keyBy('lookup_key')
                 ;
-            foreach($bigramDataChunk as $lookupKey => $bigram) {
+            foreach ($bigramDataChunk as $lookupKey => $bigram) {
                 $bigramDataToLinkToDocument[$lookupKey]['bigram_id'] = $newlyInsertedIds[$lookupKey]->id;
             }
         }
@@ -305,7 +362,7 @@ class Vernacular
         //  Update the frequency of existing bigrams.
         foreach ($bigramDataToUpdate as $frequency => $bigramIds) {
             $chunkedBigramIds = array_chunk($bigramIds, $maxRowsPerQuery);
-            foreach($chunkedBigramIds as $bigramIdsChunk) {
+            foreach ($chunkedBigramIds as $bigramIdsChunk) {
                 DB::table('vernacular_bigram')
                     ->whereIn('id', $bigramIdsChunk)
                     ->increment('frequency', $frequency);
@@ -321,9 +378,9 @@ class Vernacular
         //  @TODO:  Configure whether or not to store documents.
         //          Not storing documents will disable certain features.
         $bigramDataToLinkToDocumentChunked = array_chunk($bigramDataToLinkToDocument, $maxRowsPerQuery);
-        foreach($bigramDataToLinkToDocumentChunked as $bigramDataChunk) {
+        foreach ($bigramDataToLinkToDocumentChunked as $bigramDataChunk) {
             DB::table('vernacular_document_bigram')->insert($bigramDataChunk);
         }
-        
     }   //  function createBigrams
 }    //	class Vernacular
+

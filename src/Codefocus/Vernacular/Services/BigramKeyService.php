@@ -4,8 +4,6 @@ namespace Codefocus\Vernacular\Services;
 
 class BigramKeyService
 {
-    
-    
     public static function make($wordAId, $wordBId, $distance)
     {
         //  The lookup key is an unsigned 64-bit integer (BIGINT in MySQL),
