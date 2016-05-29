@@ -55,7 +55,7 @@ return [
     |
     */
 
-    'max_rows_per_query' => 128,
+    'max_rows_per_query' => 1200,
     
     'filters' => [
         /*
