@@ -20,6 +20,11 @@ return [
     |     Bigrams stored for distance "3":
     |         none
     |
+    | Note: Indexing more distances (and thus more bigrams) will increase
+    |       processing time, memory, and storage requirements.
+    |       Only indexing adjecent words (distance 1) is more than adequate
+    |       for most use cases.
+    |
     */
 
     'word_distance' => [
@@ -96,6 +101,19 @@ return [
         */
 
         'html' => true,
+        
+        /*
+        |--------------------------------------------------------------------------
+        | Filter numbers
+        |--------------------------------------------------------------------------
+        |
+        | Whether to ignore numbers or treat them as words.
+        | 
+        | Supported: true (filter numbers), false (treat numbers as words)
+        |
+        */
+
+        'numbers' => true,
     
     ],
 

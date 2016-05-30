@@ -17,6 +17,10 @@ class CreateVernacularTables extends Migration
         if ('testing' == env('APP_ENV')) {
             //	Test table for imaginary app model.
             Schema::create('imaginary_website', function (Blueprint $table) {
+                //  Charset
+                $table->charset = 'utf8';
+                $table->collation = 'utf8_bin';
+                //  Columns
                 $table->increments('id')->unsigned();
                 $table->string('title', 128);
                 $table->text('description')->nullable();
@@ -27,12 +31,18 @@ class CreateVernacularTables extends Migration
         
         //	Dummy source model.
         Schema::create('vernacular_dummy', function (Blueprint $table) {
+            //  Charset
+            $table->charset = 'utf8';
+            $table->collation = 'utf8_bin';
             //  Columns
             $table->increments('id')->unsigned();
         });
         
         //	Holds single words.
         Schema::create('vernacular_word', function (Blueprint $table) {
+            //  Charset
+            $table->charset = 'utf8';
+            $table->collation = 'utf8_bin';
             //  Columns
             $table->increments('id')->unsigned();
             $table->char('soundex', 4);
@@ -48,6 +58,9 @@ class CreateVernacularTables extends Migration
 
         //	Records which words follow each other.
         Schema::create('vernacular_bigram', function (Blueprint $table) {
+            //  Charset
+            $table->charset = 'utf8';
+            $table->collation = 'utf8_bin';
             //  Columns
             $table->increments('id')->unsigned();
             $table->bigInteger('lookup_key')->unsigned();
@@ -63,6 +76,9 @@ class CreateVernacularTables extends Migration
 
         //	Holds tags.
         Schema::create('vernacular_tag', function (Blueprint $table) {
+            //  Charset
+            $table->charset = 'utf8';
+            $table->collation = 'utf8_bin';
             //  Columns
             $table->increments('id')->unsigned();
             $table->string('name', 64);
@@ -73,6 +89,9 @@ class CreateVernacularTables extends Migration
 
         //	Links bigrams to tags.
         Schema::create('vernacular_bigram_tag', function (Blueprint $table) {
+            //  Charset
+            $table->charset = 'utf8';
+            $table->collation = 'utf8_bin';
             //  Columns
             $table->integer('bigram_id')->unsigned();
             $table->integer('tag_id')->unsigned();
@@ -88,6 +107,9 @@ class CreateVernacularTables extends Migration
 
         //	Holds source identifiers.
         Schema::create('vernacular_source', function (Blueprint $table) {
+            //  Charset
+            $table->charset = 'utf8';
+            $table->collation = 'utf8_bin';
             //  Columns
             $table->increments('id')->unsigned();
             $table->string('model_class', 128);
@@ -98,6 +120,9 @@ class CreateVernacularTables extends Migration
 
         //	Holds document identifiers.
         Schema::create('vernacular_document', function (Blueprint $table) {
+            //  Charset
+            $table->charset = 'utf8';
+            $table->collation = 'utf8_bin';
             //  Columns
             $table->increments('id')->unsigned();
             $table->integer('source_id')->unsigned();
@@ -110,6 +135,9 @@ class CreateVernacularTables extends Migration
 
         //	Links document identifiers to bigrams.
         Schema::create('vernacular_document_bigram', function (Blueprint $table) {
+            //  Charset
+            $table->charset = 'utf8';
+            $table->collation = 'utf8_bin';
             //  Columns
             $table->integer('document_id')->unsigned();
             $table->integer('bigram_id')->unsigned();
@@ -125,6 +153,9 @@ class CreateVernacularTables extends Migration
 
         //	Links document identifiers to tags.
         Schema::create('vernacular_document_tag', function (Blueprint $table) {
+            //  Charset
+            $table->charset = 'utf8';
+            $table->collation = 'utf8_bin';
             //  Columns
             $table->integer('document_id')->unsigned();
             $table->integer('tag_id')->unsigned();

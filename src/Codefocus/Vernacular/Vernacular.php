@@ -51,21 +51,17 @@ class Vernacular
     
     public function learnUrl($url)
     {
-        $html = file_get_contents($url);
+        //  @TODO
         
-        $htmlToTextOptions = [
-            'do_links' => 'none',
-            'width' => 0,
-        ];
+        // $html = file_get_contents($url);
         
-        $htmlToText = new \Html2Text\Html2Text($html, $htmlToTextOptions);
-        dd($htmlToText->getText());
-    }
-    
-    
-    protected function getSource(Model $model)
-    {
-        //  @DEPRECATED
+        // $htmlToTextOptions = [
+        //     'do_links' => 'none',
+        //     'width' => 0,
+        // ];
+        
+        // $htmlToText = new \Html2Text\Html2Text($html, $htmlToTextOptions);
+        // dd($htmlToText->getText());
     }
     
     /**
@@ -125,15 +121,16 @@ class Vernacular
         }
         
         //  Apply HTML filter, if configured.
-        //  @TODO: Abstract to Codefocus\Vernacular\Filters\HtmlFilter
-        //  @TODO: Also, strip_tags is not sufficient.
-        // if ($this->config['filters']['html']) {
-        //     $content = strip_tags($content);
-        // }
-
+        if ($this->config['filters']['html']) {
+            //  @TODO: Abstract to Codefocus\Vernacular\Filters\HtmlFilter
+            //  @TODO: strip_tags is not sufficient, use Html2Text or similar.
+        }
+        
         //  Apply URL filter, if configured.
-        //  @TODO: Abstract to Codefocus\Vernacular\Filters\UrlFilter
         if ($this->config['filters']['urls']) {
+            //  @TODO: Abstract to Codefocus\Vernacular\Filters\UrlFilter
+            //  @TODO: word boundaries around url.
+            //  @TECHDEBT: hardcoded regex, and inefficient replacement string.
             $content = preg_replace('/[a-z]{2,8}:\/\/([a-z0-9-\.]+(\/[^\/\s]+)?)?/', ' ___ ', $content);
         }
         
@@ -157,82 +154,10 @@ class Vernacular
         $uniqueCountedTokens = array_count_values($tokens);
         
         //  Get a Word instance for each token.
-        $words = static::$wordCache->getAll(array_keys($uniqueCountedTokens));
+        //  @TODO @NOTE: Do we need the entire Word or just the id?
+        $wordIds = static::$wordCache->getAll(array_keys($uniqueCountedTokens));
         
-        return $this->createBigrams($document, $tokens, $words);
-        
-        //  @TODO @HERE
-        exit;
-        
-        // //  Load existing Words, and create a Model instance for new Words.
-        // $words = Word::whereIn('word', array_keys($uniqueCountedTokens))
-        //     ->get()
-        //     ->keyBy('word')
-        //     ->all();
-        // $wordDataToInsert = [];
-        $wordDataToUpdate = [];
-        foreach ($uniqueCountedTokens as $token => $tokenCount) {
-            if (isset($words[$token])) {
-                //  Generate UPDATE data for this Word.
-                if (!isset($wordDataToUpdate[$tokenCount])) {
-                    $wordDataToUpdate[$tokenCount] = [];
-                }
-                $wordDataToUpdate[$tokenCount][] = $words[$token]->id;
-            } else {
-                //  Generate INSERT data for this Word.
-                $wordDataToInsert[$token] = [
-                    'word'                  => $token,
-                    'soundex'               => soundex($token),
-                    'frequency'             => $tokenCount,
-                    'document_frequency'    => 1,
-                    
-                ];
-                $bigramDataToInsert[] = BigramKeyService::toArray($lookupKey, $frequency);
-                $bigramDataToLinkToDocument[$lookupKey] = [
-                    'document_id'       => $document->id,
-                    //'bigram_id'         => $bigrams[$lookupKey]->id,
-                    'frequency'         => $frequency,
-                    'first_instance'    => $rawBigram['first_instance'],
-                ];
-            }
-            
-            
-            if (!isset($words[$token])) {
-                //  Mark this @TODO
-                $word = new Word();
-                $word->word = $token;
-                $word->soundex = soundex($token);
-                $word->frequency = 0;
-                $word->document_frequency = 0;
-                $words[$token] = $word;
-            }
-            //  Increase this Word's frequency by the number of occurrences.
-            $words[$token]->frequency += $tokenCount;
-            //  Increment this Word's document frequency.
-            $words[$token]->document_frequency++;
-            //  Save.
-            $words[$token]->save();
-        }
-            
-            
-        // foreach ($uniqueCountedTokens as $token => $tokenCount) {
-        //     if (!isset($words[$token])) {
-        //         $word = new Word();
-        //         $word->word = $token;
-        //         $word->soundex = soundex($token);
-        //         $word->frequency = 0;
-        //         $word->document_frequency = 0;
-        //         $words[$token] = $word;
-        //     }
-        //     //  Increase this Word's frequency by the number of occurrences.
-        //     $words[$token]->frequency += $tokenCount;
-        //     //  Increment this Word's document frequency.
-        //     $words[$token]->document_frequency++;
-        //     //  Save.
-        //     $words[$token]->save();
-        // }
-        //  Create Bigrams, and link them to this Document.
-        return $this->createBigrams($document, $tokens, $words);
+        return $this->createBigrams($document, $tokens, $wordIds);
         
         //  @TODO:  if model->vernacularTags:
         //          - tag document
@@ -299,11 +224,11 @@ class Vernacular
      * Create raw bigrams from an array of tokens.
      * 
      * @param array $tokens
-     * @param array $words
+     * @param array $wordIds
      *
      * @return array
      */
-    protected function getRawBigrams(array $tokens, array $words)
+    protected function getRawBigrams(array $tokens, array $wordIds)
     {
         $minDistance = min(4, max(
             1,
@@ -324,8 +249,8 @@ class Vernacular
                 //  Get the Word ids for these tokens,
                 //  and combine them into a single unique lookup key.
                 $lookupKey = BigramKeyService::make(
-                    $words[$tokens[$iTokenA]]->id,
-                    $words[$tokens[$iTokenB]]->id,
+                    $wordIds[$tokens[$iTokenA]],
+                    $wordIds[$tokens[$iTokenB]],
                     $distance
                 );
                 //  Increment this bigram's frequency.
@@ -343,17 +268,20 @@ class Vernacular
 
     
     /**
-     * Create Bigrams from an array of tokens.
+     * Create Bigrams from an array of tokens,
+     * link them to the Document and
+     * update their frequencies.
      * 
+     * @param Document $document
      * @param array $tokens
-     * @param array $words
+     * @param array $wordIds
      *
      * @return boolean
      */
-    protected function createBigrams(Document $document, array $tokens, array $words)
+    protected function createBigrams(Document $document, array $tokens, array $wordIds)
     {
         $bigramDataToLinkToDocument = [];
-        $rawBigrams = $this->getRawBigrams($tokens, $words);
+        $rawBigrams = $this->getRawBigrams($tokens, $wordIds);
         
         //  Get or create a Bigram instance for each raw bigram.
         $lookupTokens = array_map('intval', array_keys($rawBigrams));
@@ -378,14 +306,19 @@ class Vernacular
             DB::table('vernacular_document_bigram')->insert($dataChunk);
         }
         
-        //  @TODO:  increment bigram frequencies.
+        //  Increment bigram frequencies.
         //  
-        //  Now we can update the frequency and document frequency for all
+        //  Update the frequency and document frequency for all
         //  bigrams linked to this document in a single query.
-        
-        
+        DB::table('vernacular_document_bigram AS db')
+            ->join('vernacular_bigram AS b', 'b.id', '=', 'db.bigram_id')
+            ->where('db.document_id', '=', $document->id)
+            ->update([
+                'b.frequency' => DB::raw('b.frequency + db.frequency'),
+                'b.document_frequency' => DB::raw('b.document_frequency + 1')
+            ])
+            ;
         return true;
-        
     }   //  function createBigrams
+    
 }    //	class Vernacular
-
