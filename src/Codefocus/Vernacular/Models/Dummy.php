@@ -11,4 +11,3 @@ class Dummy extends Model
 
     public $timestamps = false;
 }    //	class Dummy
-

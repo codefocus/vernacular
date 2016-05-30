@@ -17,4 +17,3 @@ class Url extends Model
 
     public $timestamps = false;
 }    //	class Url
-

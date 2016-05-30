@@ -11,4 +11,3 @@ class Bigram extends Model
 
     public $timestamps = false;
 }    //	class Bigram
-

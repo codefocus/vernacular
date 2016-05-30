@@ -59,7 +59,7 @@ class Whitespace implements TokenizerInterface
             return false;
         }
         
-        array_walk($matches[0], function(&$token) {
+        array_walk($matches[0], function (&$token) {
             $token = mb_ereg_replace('/[`‘’]+/', '\'', $token);
         });
 

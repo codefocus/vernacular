@@ -14,4 +14,3 @@ class Source extends Model
         'attribute',
     ];
 }    //	class Source
-

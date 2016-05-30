@@ -15,4 +15,3 @@ class Document extends Model
         'word_count',
     ];
 }    //	class Document
-

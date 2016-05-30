@@ -23,19 +23,18 @@ class BigramLookupService
      * Return Bigrams for the specified lookup tokens.
      *
      */
-    public function getAll(array $tokens) {
-        
+    public function getAll(array $tokens)
+    {
         $bigramsLocal = [];
         $bigramsStaged = [];
         $tokensRemaining = [];
         
         //  Get memoized Bigrams.
-        foreach($tokens as $token) {
+        foreach ($tokens as $token) {
             $bigram = $this->getLocal($token);
             if ($bigram) {
                 $bigramsLocal[$token] = $bigram;
-            }
-            else {
+            } else {
                 $tokensRemaining[$token] = $token;
             }
         }
@@ -49,7 +48,7 @@ class BigramLookupService
             ->whereRaw('lookup_key IN ('.implode(', ', $tokensRemaining).')')
             ->pluck('id', 'lookup_key')
             ;
-        foreach($existingBigrams as $lookupKey => $id) {
+        foreach ($existingBigrams as $lookupKey => $id) {
             //  Memoize Bigram.
             $this->bigrams[$lookupKey] = $id;
             $bigramsLocal[$lookupKey] = $id;
@@ -59,7 +58,7 @@ class BigramLookupService
         if (count($tokensRemaining)) {
             //  Create bigrams that do not yet exist in the DB.
             $bigramDataToInsert = [];
-            foreach($tokensRemaining as $tokenToCreate) {
+            foreach ($tokensRemaining as $tokenToCreate) {
                 $bigramDataToInsert[] = BigramKeyService::toArray($tokenToCreate, 0);
             }
             //  Split into multiple insert statements,
@@ -80,7 +79,7 @@ class BigramLookupService
                 ->whereRaw('lookup_key IN ('.implode(', ', $tokensRemaining).')')
                 ->pluck('id', 'lookup_key')
                 ;
-            foreach($bigramsToMemoize as $lookupKey => $id) {
+            foreach ($bigramsToMemoize as $lookupKey => $id) {
                 //  Memoize Bigram.
                 $this->bigrams[$lookupKey] = $id;
                 $bigramsLocal[$lookupKey] = $id;
@@ -95,14 +94,11 @@ class BigramLookupService
      *
      *
      */
-    public function getLocal($token) {
+    public function getLocal($token)
+    {
         if (isset($this->bigrams[$token])) {
             return $this->bigrams[$token];
         }
         return false;
     }
-    
-    
-    
-    
 }

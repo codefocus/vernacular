@@ -16,4 +16,3 @@ class ImaginaryWebsite extends Model
 
     public $timestamps = false;
 }    //	class ImaginaryWebsite
-

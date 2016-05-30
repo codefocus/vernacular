@@ -22,6 +22,5 @@ class Sentence implements TokenizerInterface
             -1,
             PREG_SPLIT_NO_EMPTY
         );
-        
     }    //	function tokenize
 }

@@ -50,21 +50,20 @@ class Vernacular
         if (!(static::$bigramCache instanceof BigramLookupService)) {
             static::$bigramCache = new BigramLookupService;
         }
-        
     }
     
     
     public function learnUrl($url)
     {
         //  @TODO
-        
+
         // $html = file_get_contents($url);
-        
+
         // $htmlToTextOptions = [
         //     'do_links' => 'none',
         //     'width' => 0,
         // ];
-        
+
         // $htmlToText = new \Html2Text\Html2Text($html, $htmlToTextOptions);
         // dd($htmlToText->getText());
     }
@@ -146,13 +145,13 @@ class Vernacular
         //     $tokens = $this->tokenizer->tokenize($sentence);
         //     dump($tokens);
         // }
-        
+
         //  Extract tokens from this content.
         $tokens = $this->tokenizer->tokenize($content);
         
         //  @TODO:  Filter stopwords here, if configured.
         //          https://github.com/codefocus/vernacular/issues/9
-        
+
         $numTokens = count($tokens);
         if (0 == $numTokens) {
             //  No tokens in this document.
@@ -171,7 +170,7 @@ class Vernacular
         
         //  Link these Words to the document.
         $documentWordLinkData = [];
-        foreach($uniqueCountedTokens as $token => $frequency) {
+        foreach ($uniqueCountedTokens as $token => $frequency) {
             $documentWordLinkData[] = [
                 'document_id'       => $document->id,
                 'word_id'           => $wordIds[$token],
@@ -205,7 +204,7 @@ class Vernacular
         //          - recalculate tag confidence for bigrams.
         //          https://github.com/codefocus/vernacular/issues/4
     }   //  function learnDocument
-    
+
     
     /**
      * Index all learnable attributes of an Eloquent Model.
@@ -330,7 +329,7 @@ class Vernacular
         
         //  Link these Bigrams to the document.
         $documentBigramLinkData = [];
-        foreach($rawBigrams as $lookupKey => $rawBigram) {
+        foreach ($rawBigrams as $lookupKey => $rawBigram) {
             $documentBigramLinkData[] = [
                 'document_id'       => $document->id,
                 'bigram_id'         => $bigrams[$lookupKey],
@@ -361,5 +360,4 @@ class Vernacular
             ;
         return true;
     }   //  function createBigrams
-    
 }    //	class Vernacular

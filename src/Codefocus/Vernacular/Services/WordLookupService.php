@@ -23,18 +23,17 @@ class WordLookupService
      * Return Words for the specified tokens.
      *
      */
-    public function getAll(array $tokens) {
-        
+    public function getAll(array $tokens)
+    {
         $wordsLocal = [];
         $tokensRemaining = [];
         
         //  Get memoized Words.
-        foreach($tokens as $token) {
+        foreach ($tokens as $token) {
             $id = $this->getLocal($token);
             if ($id) {
                 $wordsLocal[$token] = $id;
-            }
-            else {
+            } else {
                 $tokensRemaining[$token] = $token;
             }
         }
@@ -55,7 +54,7 @@ class WordLookupService
             ->whereIn('word', $tokensRemaining)
             ->pluck('id', 'word')
             ;
-        foreach($wordsToMemoize as $word => $id) {
+        foreach ($wordsToMemoize as $word => $id) {
             //  Memoize word.
             $this->words[$word] = $id;
             $wordsLocal[$word] = $id;
@@ -68,7 +67,7 @@ class WordLookupService
         
         //  Stage the remaining Words for creation.
         $wordsStaged = [];
-        foreach($tokensRemaining as $token) {
+        foreach ($tokensRemaining as $token) {
             $wordsStaged[] = [
                 'word'                  => $token,
                 'soundex'               => soundex($token),
@@ -84,7 +83,7 @@ class WordLookupService
             ->whereIn('word', $tokensRemaining)
             ->pluck('id', 'word')
             ;
-        foreach($wordsToMemoize as $word => $id) {
+        foreach ($wordsToMemoize as $word => $id) {
             //  Memoize word.
             $this->words[$word] = $id;
             $wordsLocal[$word] = $id;
@@ -98,7 +97,8 @@ class WordLookupService
      *
      *
      */
-    public function getLocal($token) {
+    public function getLocal($token)
+    {
         if (isset($this->words[$token])) {
             return $this->words[$token];
         }
@@ -107,8 +107,4 @@ class WordLookupService
         }
         return false;
     }
-    
-    
-    
-    
 }
