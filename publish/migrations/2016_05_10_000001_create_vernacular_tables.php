@@ -132,6 +132,19 @@ class CreateVernacularTables extends Migration
             //  Indices
             $table->unique(['source_id', 'source_model_id']);
         });
+        
+        //	Links document identifiers to Words.
+        Schema::create('vernacular_document_word', function (Blueprint $table) {
+            //  Charset
+            $table->charset = 'utf8';
+            $table->collation = 'utf8_bin';
+            //  Columns
+            $table->integer('document_id')->unsigned();
+            $table->integer('word_id')->unsigned();
+            $table->integer('frequency')->unsigned();
+            //  Indices
+            $table->unique(['document_id', 'word_id']);
+        });
 
         //	Links document identifiers to bigrams.
         Schema::create('vernacular_document_bigram', function (Blueprint $table) {

@@ -153,10 +153,38 @@ class Vernacular
         //  Count occurrences of each token.
         $uniqueCountedTokens = array_count_values($tokens);
         
-        //  Get a Word instance for each token.
-        //  @TODO @NOTE: Do we need the entire Word or just the id?
+        //  Get Word ids for our tokens.
         $wordIds = static::$wordCache->getAll(array_keys($uniqueCountedTokens));
         
+        //  Link these Words to the document.
+        $documentWordLinkData = [];
+        foreach($uniqueCountedTokens as $token => $frequency) {
+            $documentWordLinkData[] = [
+                'document_id'       => $document->id,
+                'word_id'           => $wordIds[$token],
+                'frequency'         => $frequency,
+            ];
+        }
+        //  Link Words to the Document.
+        $maxRowsPerQuery = config('vernacular.max_rows_per_query');
+        $documentWordLinkDataChunked = array_chunk($documentWordLinkData, $maxRowsPerQuery);
+        unset($documentWordLinkData);
+        foreach ($documentWordLinkDataChunked as $dataChunk) {
+            DB::table('vernacular_document_word')->insert($dataChunk);
+        }
+        
+        //  Increment Word frequencies.
+        //  
+        //  Update the frequency and document frequency for all
+        //  words linked to this document in a single query.
+        DB::table('vernacular_document_word AS dw')
+            ->join('vernacular_word AS w', 'w.id', '=', 'dw.word_id')
+            ->where('dw.document_id', '=', $document->id)
+            ->update([
+                'w.frequency' => DB::raw('w.frequency + dw.frequency'),
+                'w.document_frequency' => DB::raw('w.document_frequency + 1')
+            ])
+            ;
         return $this->createBigrams($document, $tokens, $wordIds);
         
         //  @TODO:  if model->vernacularTags:
