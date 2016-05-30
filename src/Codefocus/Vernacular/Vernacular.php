@@ -111,14 +111,17 @@ class Vernacular
     /**
      * Learn a Document.
      * 
+     * @param string $content
+     * @param Document $document (default: null)
+     * 
      * @throws VernacularException
      * 
-     * @return boolean
+     * @return Document
      */
     public function learnDocument($content, Document $document = null)
     {
         
-        DB::transaction(function () use ($content, $document) {
+        return DB::transaction(function () use ($content, $document) {
         
             if (null === $document) {
                 //  Create a Dummy model to serve as the source Document,
@@ -216,6 +219,8 @@ class Vernacular
                 ;
             
             $this->createBigrams($document, $tokens, $wordIds);
+            
+            return $document;
         
         }); //  transaction
 
@@ -259,7 +264,7 @@ class Vernacular
             return false;
         }
         
-        DB::transaction(function () use ($model) {
+        return DB::transaction(function () use ($model, $document) {
             //  Lookup, load or create the source Document for this Model.
             $document = $this->getDocumentForModel($model);
             
@@ -270,8 +275,11 @@ class Vernacular
             }
             
             $this->learnDocument($content, $document);
+            
+            return $document;
         
         }); //  transaction
+        
     }   //  function learnModel
 
     

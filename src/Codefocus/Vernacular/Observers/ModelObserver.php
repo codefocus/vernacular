@@ -22,12 +22,12 @@ class ModelObserver
     
     public function created(Model $model)
     {
-        static::$vernacular->learnModel($model);
+        $model->vernacular = static::$vernacular->learnModel($model);
     }
     
     
     public function updated(Model $model)
     {
-        static::$vernacular->updateLearnedModel($model);
+        $model->vernacular = static::$vernacular->updateLearnedModel($model);
     }
 }
