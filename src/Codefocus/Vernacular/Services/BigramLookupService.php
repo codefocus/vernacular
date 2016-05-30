@@ -16,7 +16,6 @@ use DB;
  */
 class BigramLookupService
 {
-    
     private $bigrams = [];
     
     /**

@@ -126,5 +126,47 @@ return [
     */
 
     'tokenizer' => \Codefocus\Vernacular\Tokenizers\Whitespace::class,
+    
+    'urls' => [
+        
+        /*
+        |--------------------------------------------------------------------------
+        | User Agent
+        |--------------------------------------------------------------------------
+        |
+        | The user-agent header sent when fetching a remote url.
+        |
+        */
+        
+        'user_agent' => 'Vernacular/1.0',
+        
+        /*
+        |--------------------------------------------------------------------------
+        | Accept content types
+        |--------------------------------------------------------------------------
+        |
+        | The content types to accept when fetching a remote url.
+        |
+        */
+        
+        'accept' => [
+            'text/plain',
+            'text/html',
+        ],
+        
+        /*
+        |--------------------------------------------------------------------------
+        | Maximum content length
+        |--------------------------------------------------------------------------
+        |
+        | When fetching a remote url, reject documents larger than this size,
+        | specified in bytes.
+        |
+        */
+        
+        'max_content_length' => 500000,
+    
+    ]
+    
 
 ];

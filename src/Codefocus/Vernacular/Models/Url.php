@@ -3,6 +3,9 @@
 namespace Codefocus\Vernacular\Models;
 
 use Illuminate\Database\Eloquent\Model;
+//use GuzzleHttp\Client as GuzzleClient;
+//use Psr\Http\Message\ResponseInterface;
+use Goose\Client as GooseClient;
 
 class Url extends Model
 {
@@ -16,4 +19,21 @@ class Url extends Model
     protected $primaryKey = 'id';
 
     public $timestamps = false;
+    
+    protected $content = false;
+    
+    
+    
+    public function getContentAttribute() {
+        if (false == $this->content) {
+            //  Download url and extract text content.
+            $goose = new GooseClient();
+            $article = $goose->extractContent($this->url);
+            $this->content = $article->getCleanedArticleText();
+        }
+        return $this->content;
+    }
+    
+    
 }    //	class Url
+

@@ -23,19 +23,18 @@
     "prefer-stable": true,
     "require": {
         "php": ">=5.4.0",
-        "laravel/laravel": "dev-develop",
-        "symfony/dom-crawler": "^3.0"
+        "scotteh/php-goose": "dev-master"
     },
     "require-dev": {
-        "fabpot/php-cs-fixer": "^1.11",
         "phpunit/phpunit": "~4.0",
         "phpspec/phpspec": "~2.1",
         "laracasts/testdummy": "~2.0",
-        "laravel/laravel": "dev-develop"
+        "friendsofphp/php-cs-fixer": "^1.11"
     },
     "autoload": {
         "psr-4": {
-            "Codefocus\\Vernacular\\": "src/"
+            "Codefocus\\Vernacular\\": "src/",
+            "Goose\\": "vendor/scotteh/php-goose/src/"
         }
     },
     "autoload-dev": {

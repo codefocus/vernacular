@@ -38,6 +38,19 @@ class CreateVernacularTables extends Migration
             $table->increments('id')->unsigned();
         });
         
+        //	Url source model.
+        Schema::create('vernacular_url', function (Blueprint $table) {
+            //  Charset
+            $table->charset = 'utf8';
+            $table->collation = 'utf8_bin';
+            //  Columns
+            $table->increments('id')->unsigned();
+            $table->string('url', 255);
+            $table->timestamps();
+            //  Indices
+            $table->index(['url']);
+        });
+        
         //	Holds single words.
         Schema::create('vernacular_word', function (Blueprint $table) {
             //  Charset

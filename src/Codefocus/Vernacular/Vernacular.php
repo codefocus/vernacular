@@ -7,20 +7,19 @@ use Codefocus\Vernacular\Exceptions\VernacularException;
 use Codefocus\Vernacular\Services\BigramLookupService;
 use Codefocus\Vernacular\Services\WordLookupService;
 use Codefocus\Vernacular\Services\BigramKeyService;
-use Codefocus\Vernacular\Tokenizers\Sentence as SentenceTokenizer;
 use Codefocus\Vernacular\Models\Document;
 use Illuminate\Database\Eloquent\Model;
 use Codefocus\Vernacular\Models\Source;
 use Codefocus\Vernacular\Models\Bigram;
 use Codefocus\Vernacular\Models\Dummy;
 use Codefocus\Vernacular\Models\Word;
+use Codefocus\Vernacular\Models\Url;
 use Exception;
 use DB;
 
 class Vernacular
 {
     protected $tokenizer;
-    protected $sentenceTokenizer;
     protected $config;
     protected static $sources = [];
     protected static $documents = [];
@@ -41,8 +40,6 @@ class Vernacular
             throw new VernacularException('Tokenizer should implement '.TokenizerInterface::class);
         }
         
-        $this->sentenceTokenizer = new SentenceTokenizer;
-        
         //  Instantiate caches.
         if (!(static::$wordCache instanceof WordLookupService)) {
             static::$wordCache = new WordLookupService;
@@ -52,20 +49,24 @@ class Vernacular
         }
     }
     
-    
+    /**
+     * Learn a Url.
+     * 
+     * @param string $url
+     * 
+     * @return void
+     */
     public function learnUrl($url)
     {
-        //  @TODO
-
-        // $html = file_get_contents($url);
-
-        // $htmlToTextOptions = [
-        //     'do_links' => 'none',
-        //     'width' => 0,
-        // ];
-
-        // $htmlToText = new \Html2Text\Html2Text($html, $htmlToTextOptions);
-        // dd($htmlToText->getText());
+        $model = Url::where('url', '', $url)->first();
+        if (!$model) {
+            $model = new Url;
+            $model->url = $url;
+            $model->save();
+        }
+        else {
+            $model->touch();
+        }
     }
     
     /**
@@ -116,95 +117,118 @@ class Vernacular
      */
     public function learnDocument($content, Document $document = null)
     {
-        if (null === $document) {
-            //  Create a Dummy model to serve as the source Document,
-            //  if none is provided.
-            $model = new Dummy;
-            $model->save();
-            $document = $this->getDocumentForModel($model);
-        }
         
-        //  Apply HTML filter, if configured.
-        if ($this->config['filters']['html']) {
-            //  @TODO: Abstract to Codefocus\Vernacular\Filters\HtmlFilter
-            //  @TODO: strip_tags is not sufficient, use Html2Text or similar.
-        }
+        DB::transaction(function () use ($content, $document) {
         
-        //  Apply URL filter, if configured.
-        if ($this->config['filters']['urls']) {
-            //  @TODO: Abstract to Codefocus\Vernacular\Filters\UrlFilter
-            //  @TODO: word boundaries around url.
-            //  @TECHDEBT: hardcoded regex, and inefficient replacement string.
-            $content = preg_replace('/[a-z]{2,8}:\/\/([a-z0-9-\.]+(\/[^\/\s]+)?)?/', ' ___ ', $content);
-        }
-        
-        // //  @TODO: Split the content into sentences first.
-        // $sentences = $this->sentenceTokenizer->tokenize($content);
-        // foreach($sentences as $sentence) {
-        //     //  Extract tokens from this sentence.
-        //     $tokens = $this->tokenizer->tokenize($sentence);
-        //     dump($tokens);
-        // }
+            if (null === $document) {
+                //  Create a Dummy model to serve as the source Document,
+                //  if none is provided.
+                $model = new Dummy;
+                $model->save();
+                $document = $this->getDocumentForModel($model);
+            }
+            
+            //  Apply HTML filter, if configured.
+            if ($this->config['filters']['html']) {
+                //  @TODO: Abstract to Codefocus\Vernacular\Filters\HtmlFilter
+                //  @TODO: strip_tags is not sufficient, use Html2Text or similar.
+            }
+            
+            //  Apply URL filter, if configured.
+            if ($this->config['filters']['urls']) {
+                //  @TODO: Abstract to Codefocus\Vernacular\Filters\UrlFilter
+                //  @TODO: word boundaries around url.
+                //  @TECHDEBT: hardcoded regex, and inefficient replacement string.
+                $content = preg_replace('/[a-z]{2,8}:\/\/([a-z0-9-\.]+(\/[^\/\s]+)?)?/', ' ___ ', $content);
+            }
+            
+            //  @TODO:  Split the content into sentences.
+            //          https://github.com/codefocus/vernacular/issues/11
+            //  
+            // $sentences = $this->sentenceTokenizer->tokenize($content);
+            // foreach($sentences as $sentence) {
+            //     //  Extract tokens from this sentence.
+            //     $tokens = $this->tokenizer->tokenize($sentence);
+            //     dump($tokens);
+            // }
 
-        //  Extract tokens from this content.
-        $tokens = $this->tokenizer->tokenize($content);
-        
-        //  @TODO:  Filter stopwords here, if configured.
-        //          https://github.com/codefocus/vernacular/issues/9
+            //  Extract tokens from this content.
+            $tokens = $this->tokenizer->tokenize($content);
+            
+            //  @TODO:  Filter stopwords here, if configured.
+            //          https://github.com/codefocus/vernacular/issues/9
 
-        $numTokens = count($tokens);
-        if (0 == $numTokens) {
-            //  No tokens in this document.
-            throw new VernacularException('No words found in this Model.');
-        }
+            $numTokens = count($tokens);
+            if (0 == $numTokens) {
+                //  No tokens in this document.
+                throw new VernacularException('No words found in this Model.');
+            }
+            
+            //  Store document word count
+            $document->word_count = $numTokens;
+            $document->save();
+            
+            //  Count occurrences of each token.
+            $uniqueCountedTokens = array_count_values($tokens);
+            
+            //  Get Word ids for our tokens.
+            $wordIds = static::$wordCache->getAll(array_keys($uniqueCountedTokens));
+            
+            //  Link these Words to the document.
+            $documentWordLinkData = [];
+            foreach ($uniqueCountedTokens as $token => $frequency) {
+                $documentWordLinkData[] = [
+                    'document_id'       => $document->id,
+                    'word_id'           => $wordIds[$token],
+                    'frequency'         => $frequency,
+                ];
+            }
+            //  Link Words to the Document.
+            $maxRowsPerQuery = config('vernacular.max_rows_per_query');
+            $documentWordLinkDataChunked = array_chunk($documentWordLinkData, $maxRowsPerQuery);
+            unset($documentWordLinkData);
+            foreach ($documentWordLinkDataChunked as $dataChunk) {
+                DB::table('vernacular_document_word')->insert($dataChunk);
+            }
+            
+            // $fart = DB::table('vernacular_document_word AS dw');
+            
+            // $r = new \ReflectionMethod($fart, 'join');
+            // $params = $r->getParameters();
+            // foreach ($params as $param) {
+            //     //$param is an instance of ReflectionParameter
+            //     dump($param);
+            // }
+            
+            // dd('done');
+            
+            //  Increment Word frequencies.
+            //  
+            //  Update the frequency and document frequency for all
+            //  words linked to this document in a single query.
+            DB::table('vernacular_document_word AS dw')
+                ->join('vernacular_word AS w', 'w.id', '=', 'dw.word_id')
+                ->where('dw.document_id', '=', $document->id)
+                ->update([
+                    'w.frequency' => DB::raw('w.frequency + dw.frequency'),
+                    'w.document_frequency' => DB::raw('w.document_frequency + 1')
+                ])
+                ;
+            
+            $this->createBigrams($document, $tokens, $wordIds);
         
-        //  Store document word count
-        $document->word_count = $numTokens;
-        $document->save();
-        
-        //  Count occurrences of each token.
-        $uniqueCountedTokens = array_count_values($tokens);
-        
-        //  Get Word ids for our tokens.
-        $wordIds = static::$wordCache->getAll(array_keys($uniqueCountedTokens));
-        
-        //  Link these Words to the document.
-        $documentWordLinkData = [];
-        foreach ($uniqueCountedTokens as $token => $frequency) {
-            $documentWordLinkData[] = [
-                'document_id'       => $document->id,
-                'word_id'           => $wordIds[$token],
-                'frequency'         => $frequency,
-            ];
-        }
-        //  Link Words to the Document.
-        $maxRowsPerQuery = config('vernacular.max_rows_per_query');
-        $documentWordLinkDataChunked = array_chunk($documentWordLinkData, $maxRowsPerQuery);
-        unset($documentWordLinkData);
-        foreach ($documentWordLinkDataChunked as $dataChunk) {
-            DB::table('vernacular_document_word')->insert($dataChunk);
-        }
-        
-        //  Increment Word frequencies.
-        //  
-        //  Update the frequency and document frequency for all
-        //  words linked to this document in a single query.
-        DB::table('vernacular_document_word AS dw')
-            ->join('vernacular_word AS w', 'w.id', '=', 'dw.word_id')
-            ->where('dw.document_id', '=', $document->id)
-            ->update([
-                'w.frequency' => DB::raw('w.frequency + dw.frequency'),
-                'w.document_frequency' => DB::raw('w.document_frequency + 1')
-            ])
-            ;
-        return $this->createBigrams($document, $tokens, $wordIds);
-        
-        //  @TODO:  if model->vernacularTags:
-        //          - tag document
-        //          - recalculate tag confidence for bigrams.
-        //          https://github.com/codefocus/vernacular/issues/4
+        }); //  transaction
+
     }   //  function learnDocument
-
+    
+    
+    // public function tagDocument($document, $tag) {
+    //         //  @TODO:  if model->vernacularTags:
+    //         //          - tag document
+    //         //          - recalculate tag confidence for bigrams.
+    //         //          https://github.com/codefocus/vernacular/issues/4
+    // }
+    
     
     /**
      * Index all learnable attributes of an Eloquent Model.
@@ -361,3 +385,4 @@ class Vernacular
         return true;
     }   //  function createBigrams
 }    //	class Vernacular
+
