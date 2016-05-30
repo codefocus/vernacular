@@ -54,15 +54,14 @@ class Whitespace implements TokenizerInterface
                       self::REGEX_ALPHANUMERIC.'{'.$this->minWordLength.','.$this->maxWordLength.'}'.
                       self::REGEX_APOSTROPHE_SUFFIXES.'?'.
                       self::REGEX_LOOKAHEAD_NO_ALPHANUMERIC;
-
-        // //  Extract tokens.
-        // $regex = self::REGEX_LOOKBEHIND_NO_ALPHANUMERIC.
-        //               self::REGEX_ALPHA.'{'.$this->minWordLength.','.$this->maxWordLength.'}'.
-        //               self::REGEX_LOOKAHEAD_NO_ALPHANUMERIC;
         if (false === preg_match_all('/'.$regex.'/u', $document, $matches)) {
             //  No acceptable tokens found in this document.
             return false;
         }
+        
+        array_walk($matches[0], function(&$token) {
+            $token = mb_ereg_replace('/[`‘’]+/', '\'', $token);
+        });
 
         //  Return found tokens.
         return $matches[0];

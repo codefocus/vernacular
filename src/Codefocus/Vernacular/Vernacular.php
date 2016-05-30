@@ -7,6 +7,7 @@ use Codefocus\Vernacular\Exceptions\VernacularException;
 use Codefocus\Vernacular\Services\BigramLookupService;
 use Codefocus\Vernacular\Services\WordLookupService;
 use Codefocus\Vernacular\Services\BigramKeyService;
+use Codefocus\Vernacular\Tokenizers\Sentence as SentenceTokenizer;
 use Codefocus\Vernacular\Models\Document;
 use Illuminate\Database\Eloquent\Model;
 use Codefocus\Vernacular\Models\Source;
@@ -19,6 +20,7 @@ use DB;
 class Vernacular
 {
     protected $tokenizer;
+    protected $sentenceTokenizer;
     protected $config;
     protected static $sources = [];
     protected static $documents = [];
@@ -38,6 +40,9 @@ class Vernacular
         if (false === in_array(TokenizerInterface::class, class_implements($this->tokenizer))) {
             throw new VernacularException('Tokenizer should implement '.TokenizerInterface::class);
         }
+        
+        $this->sentenceTokenizer = new SentenceTokenizer;
+        
         //  Instantiate caches.
         if (!(static::$wordCache instanceof WordLookupService)) {
             static::$wordCache = new WordLookupService;
@@ -133,6 +138,14 @@ class Vernacular
             //  @TECHDEBT: hardcoded regex, and inefficient replacement string.
             $content = preg_replace('/[a-z]{2,8}:\/\/([a-z0-9-\.]+(\/[^\/\s]+)?)?/', ' ___ ', $content);
         }
+        
+        // //  @TODO: Split the content into sentences first.
+        // $sentences = $this->sentenceTokenizer->tokenize($content);
+        // foreach($sentences as $sentence) {
+        //     //  Extract tokens from this sentence.
+        //     $tokens = $this->tokenizer->tokenize($sentence);
+        //     dump($tokens);
+        // }
         
         //  Extract tokens from this content.
         $tokens = $this->tokenizer->tokenize($content);
